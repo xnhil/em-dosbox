@@ -107,11 +107,13 @@ public:
 	   
 		// Show list of cdroms
 		if (cmd->FindExist("-cd",false)) {
+#ifndef EMSCRIPTEN
 			int num = SDL_CDNumDrives();
    			WriteOut(MSG_Get("PROGRAM_MOUNT_CDROMS_FOUND"),num);
 			for (int i=0; i<num; i++) {
 				WriteOut("%2d. %s\n",i,SDL_CDName(i));
 			};
+#endif
 			return;
 		}
 
@@ -1204,6 +1206,7 @@ public:
 				imageDiskList[0] = ((fatDrive *)newdrive)->loadedDisk;
 			}
 		} else if (fstype=="iso") {
+#ifndef EMSCRIPTEN
 			if (Drives[drive-'A']) {
 				WriteOut(MSG_Get("PROGRAM_IMGMOUNT_ALREADY_MOUNTED"));
 				return;
@@ -1251,7 +1254,9 @@ public:
 				tmp += "; " + paths[i];
 			}
 			WriteOut(MSG_Get("PROGRAM_MOUNT_STATUS_2"), drive, tmp.c_str());
-			
+#else /* EMSCRIPTEN */
+			WriteOut(MSG_Get("MSCDEX_ERROR_NOT_SUPPORTED"));
+#endif
 		} else if (fstype=="none") {
 			if(imageDiskList[drive-'0'] != NULL) delete imageDiskList[drive-'0'];
 			imageDiskList[drive-'0'] = newImage;

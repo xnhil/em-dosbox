@@ -667,7 +667,9 @@ void DOSBOX_Init(void) {
 	// Mscdex
 	secprop->AddInitFunction(&MSCDEX_Init);
 	secprop->AddInitFunction(&DRIVES_Init);
+#ifndef EMSCRIPTEN
 	secprop->AddInitFunction(&CDROM_Image_Init);
+#endif
 #if C_IPX
 	secprop=control->AddSection_prop("ipx",&IPX_Init,true);
 	Pbool = secprop->Add_bool("ipx",Property::Changeable::WhenIdle, false);

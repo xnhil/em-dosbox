@@ -18,6 +18,11 @@
 
 /* $Id: cdrom_image.cpp,v 1.24 2009-03-19 20:45:42 c2woody Exp $ */
 
+/* Emscripten could theoretically support CD images, but this
+ * implementation uses a SDL Mutex, which isn't supported
+ */
+#ifndef EMSCRIPTEN
+
 #include <cctype>
 #include <cmath>
 #include <cstdio>
@@ -708,3 +713,5 @@ void CDROM_Image_Init(Section* section) {
 	section->AddDestroyFunction(CDROM_Image_Destroy, false);
 #endif
 }
+
+#endif /* !EMSCRIPTEN */

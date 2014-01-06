@@ -18,6 +18,8 @@
 
 /* $Id: drive_iso.cpp,v 1.27 2009-09-22 21:48:08 c2woody Exp $ */
 
+#ifndef EMSCRIPTEN
+
 #include <cctype>
 #include <cstring>
 #include "cdrom.h"
@@ -551,3 +553,5 @@ bool isoDrive :: lookup(isoDirEntry *de, const char *path) {
 	}
 	return true;
 }
+
+#endif /* !EMSCRIPTEN */

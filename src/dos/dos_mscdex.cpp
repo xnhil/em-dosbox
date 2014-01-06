@@ -252,6 +252,7 @@ int CMscdex::AddDrive(Bit16u _drive, char* physicalPath, Bit8u& subUnit)
 	int result = 0;
 	// Get Mounttype and init needed cdrom interface
 	switch (CDROM_GetMountType(physicalPath,forceCD)) {
+#ifndef EMSCRIPTEN
 	case 0x00: {	
 		LOG(LOG_MISC,LOG_NORMAL)("MSCDEX: Mounting physical cdrom: %s"	,physicalPath);
 #if defined (WIN32)
@@ -298,6 +299,7 @@ int CMscdex::AddDrive(Bit16u _drive, char* physicalPath, Bit8u& subUnit)
 		LOG(LOG_MISC,LOG_NORMAL)("MSCDEX: Mounting iso file as cdrom: %s", physicalPath);
 		cdrom[numDrives] = new CDROM_Interface_Image((Bit8u)numDrives);
 		break;
+#endif /* !EMSCRIPTEN */
 	case 0x02:	// fake cdrom interface (directories)
 		cdrom[numDrives] = new CDROM_Interface_Fake;
 		LOG(LOG_MISC,LOG_NORMAL)("MSCDEX: Mounting directory as cdrom: %s",physicalPath);
@@ -863,6 +865,11 @@ void CMscdex::InitNewMedia(Bit8u subUnit) {
 static CMscdex* mscdex = 0;
 static PhysPt curReqheaderPtr = 0;
 
+#ifdef EMSCRIPTEN
+/* Taken from SDL_cdrom.h */
+#define CD_FPS     75
+#define MSF_TO_FRAMES(M, S, F)     ((M)*60*CD_FPS+(S)*CD_FPS+(F))
+#endif
 static Bit16u MSCDEX_IOCTL_Input(PhysPt buffer,Bit8u drive_unit) {
 	Bitu ioctl_fct = mem_readb(buffer);
 	MSCDEX_LOG("MSCDEX: IOCTL INPUT Subfunction %02X",ioctl_fct);

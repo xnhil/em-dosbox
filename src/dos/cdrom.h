@@ -60,6 +60,7 @@ public:
 	virtual void	InitNewMedia		(void) {};
 };	
 
+#ifndef EMSCRIPTEN
 class CDROM_Interface_SDL : public CDROM_Interface
 {
 public:
@@ -87,6 +88,7 @@ private:
 	int		driveID;
 	Uint32	oldLeadOut;
 };
+#endif /* !EMSCRIPTEN */
 
 class CDROM_Interface_Fake : public CDROM_Interface
 {
@@ -105,6 +107,7 @@ public:
 	bool	LoadUnloadMedia		(bool /*unload*/) { return true; };
 };	
 
+#ifndef EMSCRIPTEN
 class CDROM_Interface_Image : public CDROM_Interface
 {
 private:
@@ -207,6 +210,7 @@ typedef	std::vector<Track>::iterator	track_it;
 	std::string	mcn;
 	Bit8u	subUnit;
 };
+#endif /* !EMSCRIPTEN */
 
 #if defined (WIN32)	/* Win 32 */
 
