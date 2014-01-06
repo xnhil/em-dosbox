@@ -135,7 +135,9 @@ struct private_hwdata {
 enum SCREEN_TYPES	{
 	SCREEN_SURFACE,
 	SCREEN_SURFACE_DDRAW,
+#ifndef EMSCRIPTEN
 	SCREEN_OVERLAY,
+#endif /* !EMSCRIPTEN */
 	SCREEN_OPENGL
 };
 
@@ -326,11 +328,13 @@ check_gotbpp:
 		flags|=GFX_SCALING;
 		goto check_gotbpp;
 #endif
+#ifndef EMSCRIPTEN
 	case SCREEN_OVERLAY:
 		if (flags & GFX_RGBONLY || !(flags&GFX_CAN_32)) goto check_surface;
 		flags|=GFX_SCALING;
 		flags&=~(GFX_CAN_8|GFX_CAN_15|GFX_CAN_16);
 		break;
+#endif /* !EMSCRIPTEN */
 #if C_OPENGL
 	case SCREEN_OPENGL:
 		if (flags & GFX_RGBONLY || !(flags&GFX_CAN_32)) goto check_surface;
@@ -538,6 +542,7 @@ dosurface:
 		sdl.desktop.type=SCREEN_SURFACE_DDRAW;
 		break;
 #endif
+#ifndef EMSCRIPTEN
 	case SCREEN_OVERLAY:
 		if (sdl.overlay) {
 			SDL_FreeYUVOverlay(sdl.overlay);
@@ -553,6 +558,7 @@ dosurface:
 		sdl.desktop.type=SCREEN_OVERLAY;
 		retFlags = GFX_CAN_32 | GFX_SCALING | GFX_HARDWARE;
 		break;
+#endif /* !EMSCRIPTEN */
 #if C_OPENGL
 	case SCREEN_OPENGL:
 	{
@@ -726,12 +732,14 @@ bool GFX_StartUpdate(Bit8u * & pixels,Bitu & pitch) {
 		sdl.updating=true;
 		return true;
 #endif
+#ifndef EMSCRIPTEN
 	case SCREEN_OVERLAY:
 		SDL_LockYUVOverlay(sdl.overlay);
 		pixels=(Bit8u *)*(sdl.overlay->pixels);
 		pitch=*(sdl.overlay->pitches);
 		sdl.updating=true;
 		return true;
+#endif /* !EMSCRIPTEN */
 #if C_OPENGL
 	case SCREEN_OPENGL:
 		pixels=(Bit8u *)sdl.opengl.framebuf;
@@ -808,10 +816,12 @@ void GFX_EndUpdate( const Bit16u *changedLines ) {
 		SDL_Flip(sdl.surface);
 		break;
 #endif
+#ifndef EMSCRIPTEN
 	case SCREEN_OVERLAY:
 		SDL_UnlockYUVOverlay(sdl.overlay);
 		SDL_DisplayYUVOverlay(sdl.overlay,&sdl.clip);
 		break;
+#endif /* !EMSCRIPTEN */
 #if C_OPENGL
 	case SCREEN_OPENGL:
 #if defined(NVIDIA_PixelDataRange)
@@ -869,6 +879,7 @@ Bitu GFX_GetRGB(Bit8u red,Bit8u green,Bit8u blue) {
 	case SCREEN_SURFACE:
 	case SCREEN_SURFACE_DDRAW:
 		return SDL_MapRGB(sdl.surface->format,red,green,blue);
+#ifndef EMSCRIPTEN
 	case SCREEN_OVERLAY:
 		{
 			Bit8u y =  ( 9797*(red) + 19237*(green) +  3734*(blue) ) >> 15;
@@ -880,6 +891,7 @@ Bitu GFX_GetRGB(Bit8u red,Bit8u green,Bit8u blue) {
 			return (u << 0) | (y << 8) | (v << 16) | (y << 24);
 #endif
 		}
+#endif /* !EMSCRIPTEN */
 	case SCREEN_OPENGL:
 //		return ((red << 0) | (green << 8) | (blue << 16)) | (255 << 24);
 		//USE BGRA
@@ -1100,8 +1112,10 @@ static void GUI_StartUp(Section * sec) {
 	} else if (output == "ddraw") {
 		sdl.desktop.want_type=SCREEN_SURFACE_DDRAW;
 #endif
+#ifndef EMSCRIPTEN
 	} else if (output == "overlay") {
 		sdl.desktop.want_type=SCREEN_OVERLAY;
+#endif /* !EMSCRIPTEN */
 #if C_OPENGL
 	} else if (output == "opengl") {
 		sdl.desktop.want_type=SCREEN_OPENGL;
