@@ -30,6 +30,11 @@
 
 #include "SDL.h"
 #include "SDL_thread.h"
+#ifdef EMSCRIPTEN
+/* Not sure why this is needed. */
+#define SDLK_QUOTE (0xde)
+#define SDLK_SCROLLOCK (0x91)
+#endif
 
 #include "dosbox.h"
 #include "video.h"
@@ -2398,6 +2403,10 @@ void MAPPER_StartUp(Section * sec) {
 
 	usescancodes = false;
 
+	/* Emscripten generates scancodes from SDL keys,
+	 * so supporting them doesn't seem useful.
+	 */
+#ifndef EMSCRIPTEN
 	if (section->Get_bool("usescancodes")) {
 		usescancodes=true;
 
@@ -2505,6 +2514,7 @@ void MAPPER_StartUp(Section * sec) {
 			if (key<MAX_SDLKEYS) scancode_map[key]=(Bit8u)i;
 		}
 	}
+#endif /* !EMSCRIPTEN */
 
 	Prop_path* pp = section->Get_path("mapperfile");
 	mapper.filename = pp->realpath;
