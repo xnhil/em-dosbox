@@ -23,6 +23,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#ifdef EMSCRIPTEN
+#include <emscripten.h>
+#endif
 #include "dosbox.h"
 #include "debug.h"
 #include "cpu.h"
@@ -125,8 +128,15 @@ Bit32s ticksDone;
 Bit32u ticksScheduled;
 bool ticksLocked;
 
+#ifdef EMSCRIPTEN
+static int runcount = 0;
+#endif
+
 static Bitu Normal_Loop(void) {
 	Bits ret;
+#ifdef EMSCRIPTEN
+	int loopcount = 0;
+#endif
 	while (1) {
 		if (PIC_RunQueue()) {
 			ret=(*cpudecoder)();
@@ -145,6 +155,11 @@ static Bitu Normal_Loop(void) {
 				ticksRemain--;
 			} else goto increaseticks;
 		}
+#ifdef EMSCRIPTEN
+		if (runcount >= 2 && ++loopcount > 16) {
+			return 0;
+		}
+#endif
 	}
 increaseticks:
 	if (GCC_UNLIKELY(ticksLocked)) {
@@ -238,7 +253,18 @@ void DOSBOX_SetNormalLoop() {
 	loop=Normal_Loop;
 }
 
+#ifdef EMSCRIPTEN
+void em_main_loop(void) {
+	(*loop)();
+}
+#endif
+
 void DOSBOX_RunMachine(void){
+#ifdef EMSCRIPTEN
+	if (++runcount > 1) {
+		emscripten_set_main_loop(em_main_loop, 30, 1);
+	}
+#endif
 	Bitu ret;
 	do {
 		ret=(*loop)();
