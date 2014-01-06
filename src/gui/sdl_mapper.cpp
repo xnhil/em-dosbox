@@ -24,6 +24,7 @@
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <assert.h>
 
 
@@ -693,7 +694,7 @@ public:
 			if (abs(event->jaxis.value)<25000) return 0;
 			return CreateAxisBind(event->jaxis.axis,event->jaxis.value>0);
 		} else if (event->type==SDL_JOYBUTTONDOWN) {
-			if (event->button.which!=stick) return 0;
+			if (event->jbutton.which!=stick) return 0;
 #if defined (REDUCE_JOYSTICK_POLLING)
 			return CreateButtonBind(event->jbutton.button%button_wrap);
 #else
