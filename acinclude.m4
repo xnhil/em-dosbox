@@ -367,7 +367,10 @@ typedef         double     Real64;
   typedef   signed short Bit16s;
 #endif
 
-#if SIZEOF_UNSIGNED_INT == 4
+/* When ./configure is run for Emscripten, native binaries are built,
+ * giving wrong answers on a 64 bit host. This corrects the errors.
+ */
+#if SIZEOF_UNSIGNED_INT == 4 || defined(EMSCRIPTEN)
   typedef unsigned int Bit32u;
   typedef   signed int Bit32s;
 #elif SIZEOF_UNSIGNED_LONG == 4
@@ -377,17 +380,17 @@ typedef         double     Real64;
 #  error "can't find sizeof(type) of 4 bytes!"
 #endif
 
-#if SIZEOF_UNSIGNED_LONG == 8
+#if SIZEOF_UNSIGNED_LONG == 8 && !defined(EMSCRIPTEN)
   typedef unsigned long Bit64u;
   typedef   signed long Bit64s;
-#elif SIZEOF_UNSIGNED_LONG_LONG == 8
+#elif SIZEOF_UNSIGNED_LONG_LONG == 8 || defined(EMSCRIPTEN)
   typedef unsigned long long Bit64u;
   typedef   signed long long Bit64s;
 #else
 #  error "can't find data type of 8 bytes"
 #endif
 
-#if SIZEOF_INT_P == 4
+#if SIZEOF_INT_P == 4 || defined(EMSCRIPTEN)
   typedef Bit32u Bitu;
   typedef Bit32s Bits;
 #else
