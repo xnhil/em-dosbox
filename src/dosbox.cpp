@@ -155,11 +155,6 @@ static Bitu Normal_Loop(void) {
 				ticksRemain--;
 			} else goto increaseticks;
 		}
-#ifdef EMSCRIPTEN
-		if (runcount >= 2 && ++loopcount > 16) {
-			return 0;
-		}
-#endif
 	}
 increaseticks:
 	if (GCC_UNLIKELY(ticksLocked)) {
@@ -236,7 +231,9 @@ increaseticks:
 			}
 		} else {
 			ticksAdded = 0;
+#ifndef EMSCRIPTEN
 			SDL_Delay(1);
+#endif
 			ticksDone -= GetTicks() - ticksNew;
 			if (ticksDone < 0)
 				ticksDone = 0;
@@ -262,7 +259,7 @@ void em_main_loop(void) {
 void DOSBOX_RunMachine(void){
 #ifdef EMSCRIPTEN
 	if (++runcount > 1) {
-		emscripten_set_main_loop(em_main_loop, 30, 1);
+		emscripten_set_main_loop(em_main_loop, 60, 1);
 	}
 #endif
 	Bitu ret;
