@@ -11,6 +11,10 @@ if len(sys.argv) < 3:
     print 'Creates PACKAGE_NAME.data and PACKAGE_NAME.html.'
     sys.exit(1)
 
+def error(s):
+    print >> sys.stderr, s
+    sys.exit(1)
+
 OUTPUT_HTML = sys.argv[1] + '.html'
 OUTPUT_DATA = sys.argv[1] + '.data'
 
@@ -21,36 +25,31 @@ elif os.path.isdir(sys.argv[2]):
     BASE_DIR = sys.argv[2];
     PACKAGE_ARG = '.'
     if (len(sys.argv) < 4):
-        print "When packaging directory, supply file to run as 3rd argument."
-        sys.exit(1)
+        error('When packaging directory, supply file to run as 3rd argument.')
     else:
         p = os.path.join(sys.argv[2], sys.argv[3])
         if os.path.isfile(p):
             EXECUTABLE = sys.argv[3]
         else:
-            print "Did not find executable at %s" % p
-            sys.exit(1)
+            error("Did not find executable at %s" % p)
 elif not os.path.exists(sys.argv[2]):
-    print "Can't find %s" % sys.argv[2]
+    error("Can't find %s" % sys.argv[2])
 else:
-    print "Don't know how to package %s" % sys.argv[2]
-    sys.exit(1)
+    error("Don't know how to package %s" % sys.argv[2])
 
 def getfiletext(fn):
     try:
         f = open(fn, 'r')
         txt = f.read()
     except Exception, e:
-        print 'Error reading file: %s' % (str(e))
-        sys.exit(1)
+        error('Error reading file: %s' % (str(e)))
     f.close
     return txt
 
 try:
   exec(getfiletext(os.path.expanduser('~/.emscripten')))
 except Exception, e:
-  print 'Error evaluating Emscripten configuration: %s' % (str(e))
-  sys.exit(1)
+  error('Error evaluating Emscripten configuration: %s' % (str(e)))
 
 def run_packager():
     if BASE_DIR != '':
@@ -65,13 +64,16 @@ def run_packager():
     else:
         datafile = OUTPUT_DATA
 
-    res = subprocess.check_output([PYTHON,
-                                  os.path.join(EMSCRIPTEN_ROOT, "tools",
-                                               "file_packager.py"),
-                                  datafile,
-                                  "--no-heap-copy",
-                                  "--preload",
-                                  PACKAGE_ARG])
+    try:
+        res = subprocess.check_output([PYTHON,
+                                       os.path.join(EMSCRIPTEN_ROOT, "tools",
+                                                    "file_packager.py"),
+                                       datafile,
+                                       "--no-heap-copy",
+                                       "--preload",
+                                       PACKAGE_ARG])
+    except:
+        error('Error reported by Emscripten packager.')
 
     if BASE_DIR != '':
         os.chdir(cwd)
@@ -86,8 +88,7 @@ def inject_files(f):
 try:
     outf = open(OUTPUT_HTML, 'w')
 except Exception, e:
-    print 'Error opening %s for writing: %s' %( OUTPUT_HTML, (str(e)) )
-    sys.exit(1)
+    error('Error opening %s for writing: %s' %( OUTPUT_HTML, (str(e)) ))
 
 with open('dosbox.html') as f:
     for line in iter(f.readline, ''):
