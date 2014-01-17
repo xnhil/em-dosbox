@@ -427,7 +427,13 @@ void DOSBOX_Init(void) {
 		"dynamic",
 #endif
 		"normal", "simple",0 };
-	Pstring = secprop->Add_string("core",Property::Changeable::WhenIdle,"auto");
+	Pstring = secprop->Add_string("core",Property::Changeable::WhenIdle,
+#ifdef EMSCRIPTEN
+		"simple"
+#else
+		"auto"
+#endif
+	);
 	Pstring->Set_values(cores);
 	Pstring->Set_help("CPU Core used in emulation. auto will switch to dynamic if available and appropriate.");
 
