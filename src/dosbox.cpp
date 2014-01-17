@@ -258,7 +258,10 @@ void em_main_loop(void) {
 
 void DOSBOX_RunMachine(void){
 #ifdef EMSCRIPTEN
-	if (++runcount > 1) {
+	if (runcount == 0) {
+		runcount = 1;
+	} else if (runcount == 1) {
+		runcount = 2;
 		emscripten_set_main_loop(em_main_loop, 60, 1);
 	}
 #endif
