@@ -172,9 +172,15 @@ increaseticks:
 			ticksRemain = ticksNew-ticksLast;
 			ticksLast = ticksNew;
 			ticksDone += ticksRemain;
+#ifdef EMSCRIPTEN
+			if ( ticksRemain > 30 ) {
+				ticksRemain = 30;
+			}
+#else
 			if ( ticksRemain > 20 ) {
 				ticksRemain = 20;
 			}
+#endif
 			ticksAdded = ticksRemain;
 			if (CPU_CycleAutoAdjust && !CPU_SkipCycleAutoAdjust) {
 				if (ticksScheduled >= 250 || ticksDone >= 250 || (ticksAdded > 15 && ticksScheduled >= 5) ) {
@@ -262,7 +268,7 @@ void DOSBOX_RunMachine(void){
 		runcount = 1;
 	} else if (runcount == 1) {
 		runcount = 2;
-		emscripten_set_main_loop(em_main_loop, 60, 1);
+		emscripten_set_main_loop(em_main_loop, 100, 1);
 	}
 #endif
 	Bitu ret;
@@ -490,7 +496,14 @@ void DOSBOX_Init(void) {
 	Pint->Set_values(blocksizes);
 	Pint->Set_help("Mixer block size, larger blocks might help sound stuttering but sound will also be more lagged.");
 
-	Pint = secprop->Add_int("prebuffer",Property::Changeable::OnlyAtStart,20);
+	Pint = secprop->Add_int("prebuffer",Property::Changeable::OnlyAtStart,
+#ifdef EMSCRIPTEN
+		// Firefox could probably use 20, but Chrome needs more
+		40
+#else
+		20
+#endif
+	);
 	Pint->SetMinMax(0,100);
 	Pint->Set_help("How many milliseconds of data to keep on top of the blocksize.");
 
