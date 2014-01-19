@@ -40,13 +40,11 @@ very slow. This problem does not have a proper fix. This
 but it can be used and gives good performance in Firefox.
 * V8 JavaScript Engine [issue
 2275](http://code.google.com/p/v8/issues/detail?id=2275) prevents large switch
-statements from being optimized. That means even with Emscripten issue 1909
-fixed, performance in Chrome and other WebKit browsers is terrible.
-Transforming the CPU emulation case statements into functions and using an
-array of function pointers instead of a switch statement gets around this
-problem. It also reduces CPU utilization in Firefox. [This
-source](https://dl.dropboxusercontent.com/u/16662598/Ports/DOSBox-web/core_simp
-le_funtab-v2.tar.xz) can be used to build  such a transformed core_simple.o.
+statements from being optimized. The simple, normal and prefetch cores are
+automatically transformed to avoid this issue. Case statements for x86
+instructions become functions, and an array of function pointers is used
+instead of the switch statements. The `--enable-funarray` configure option
+controls this.
 * The same origin policy prevents access to data files when running via a
 file:// URL in Chrome. Use a web server such as `python -m SimpleHTTPServer`
 instead.

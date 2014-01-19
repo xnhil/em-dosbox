@@ -23,7 +23,8 @@ AS_IF([test "x$enable_emscripten" = "xyes"],
        : ${CXXFLAGS="-O2"}
        : ${CFLAGS="-O2"}
        : ${LDFLAGS="-s TOTAL_MEMORY=67108864"}
-       ac_cv_exeext=.html])
+       ac_cv_exeext=.html
+       enable_funarray=yes])
 
 dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
@@ -40,6 +41,15 @@ AC_PROG_CPP
 AC_PROG_CXX
 AC_PROG_INSTALL
 AC_PROG_RANLIB
+
+dnl Function array core
+AC_ARG_ENABLE(
+  [funarray],
+  [AC_HELP_STRING([--enable-funarray=@<:@no/yes@:>@],
+                  [use array of function pointers in CPU core])])
+AM_CONDITIONAL([FUNARRAY_CORE], [test "x$enable_funarray" = "xyes"])
+AS_IF([test "x$enable_funarray" = "xyes"],
+      [AC_DEFINE(FUNARRAY_CORE, 1, [use array of function pointers in core])])
 
 dnl Some needed libaries for OS2
 dnl perharps join this with the other target depended checks. move them upwards
