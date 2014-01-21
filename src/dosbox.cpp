@@ -130,12 +130,13 @@ bool ticksLocked;
 
 #ifdef EMSCRIPTEN
 static int runcount = 0;
+static int CPU_Cycles_FromUsage;
 #endif
 
 static Bitu Normal_Loop(void) {
 	Bits ret;
 #ifdef EMSCRIPTEN
-	int loopcount = 0;
+	int ticksEntry = GetTicks();
 #endif
 	while (1) {
 		if (PIC_RunQueue()) {
@@ -171,22 +172,38 @@ increaseticks:
 		if (ticksNew > ticksLast) {
 			ticksRemain = ticksNew-ticksLast;
 			ticksLast = ticksNew;
-			ticksDone += ticksRemain;
 #ifdef EMSCRIPTEN
-			if ( ticksRemain > 30 ) {
-				ticksRemain = 30;
-			}
-#else
+			ticksDone += ticksNew - ticksEntry + 1;
+#else /* !EMSCRIPTEN */
+			ticksDone += ticksRemain;
 			if ( ticksRemain > 20 ) {
 				ticksRemain = 20;
 			}
 #endif
 			ticksAdded = ticksRemain;
 			if (CPU_CycleAutoAdjust && !CPU_SkipCycleAutoAdjust) {
-				if (ticksScheduled >= 250 || ticksDone >= 250 || (ticksAdded > 15 && ticksScheduled >= 5) ) {
+#ifdef EMSCRIPTEN
+				/* CPU cycle limit for avoiding taking of too much
+				 * host CPU time without making the simulation fall behind.
+				 */
+				Bit32s CPU_Cycles_FromBacklog = (Bit64s)CPU_CycleMax *
+				                                25 / ticksRemain;
+#endif
+				if (ticksScheduled >= 250 || ticksDone >= 250
+#ifndef EMSCRIPTEN
+				    || (ticksAdded > 15 && ticksScheduled >= 5)
+#endif
+				    ) {
 					if(ticksDone < 1) ticksDone = 1; // Protect against div by zero
-					/* ratio we are aiming for is around 90% usage*/
-					Bit32s ratio = (ticksScheduled * (CPU_CyclePercUsed*90*1024/100/100)) / ticksDone;
+#ifdef EMSCRIPTEN
+/* This is a compromise between minimizing the triggering of
+ * the backlog limit, and using as much CPU time as possible.
+ */
+#define CPU_USAGE_TARGET 60
+#else
+#define CPU_USAGE_TARGET 90
+#endif
+					Bit32s ratio = (ticksScheduled * (CPU_CyclePercUsed*CPU_USAGE_TARGET*1024/100/100)) / ticksDone;
 					Bit32s new_cmax = CPU_CycleMax;
 					Bit64s cproc = (Bit64s)CPU_CycleMax * (Bit64s)ticksScheduled;
 					if (cproc > 0) {
@@ -221,12 +238,17 @@ increaseticks:
 							if (CPU_CycleLimit > 0) {
 								if (CPU_CycleMax>CPU_CycleLimit) CPU_CycleMax = CPU_CycleLimit;
 							}
+#ifdef EMSCRIPTEN
+							CPU_Cycles_FromUsage = CPU_CycleMax;
+#endif
 						}
 					}
 					CPU_IODelayRemoved = 0;
 					ticksDone = 0;
 					ticksScheduled = 0;
-				} else if (ticksAdded > 15) {
+				}
+#ifndef EMSCRIPTEN
+				else if (ticksAdded > 15) {
 					/* ticksAdded > 15 but ticksScheduled < 5, lower the cycles
 					   but do not reset the scheduled/done ticks to take them into
 					   account during the next auto cycle adjustment */
@@ -234,7 +256,28 @@ increaseticks:
 					if (CPU_CycleMax < CPU_CYCLES_LOWER_LIMIT)
 						CPU_CycleMax = CPU_CYCLES_LOWER_LIMIT;
 				}
+#else /* EMSCRIPTEN */
+				if (CPU_Cycles_FromBacklog > CPU_Cycles_FromUsage) {
+					CPU_CycleMax = CPU_Cycles_FromUsage;
+				} else {
+					/* Attempt to avoid falling behind takes precedence,
+					 * overriding value calculated above.
+					 */
+					CPU_CycleMax = CPU_Cycles_FromBacklog;
+				}
+#endif
 			}
+#ifdef EMSCRIPTEN
+			else if (ticksRemain > 30) {
+				/* CPU cycles are fixed and the simulation is falling behind.
+				 * Something has to be done to avoid taking up too much CPU
+				 * time trying to catch up. This will make the simulation run
+				 * slow by running less simulation ticks the number of SDL
+				 * ticks that are passing.
+				 */
+				ticksRemain = 30;
+			}
+#endif
 		} else {
 			ticksAdded = 0;
 #ifndef EMSCRIPTEN
@@ -268,6 +311,11 @@ void DOSBOX_RunMachine(void){
 		runcount = 1;
 	} else if (runcount == 1) {
 		runcount = 2;
+		/* The fps parameter is not actually frames per second! It is a
+		 * 1000/fps millisecond delay via a setTimeout() call after the
+		 * main loop runs. So, any time spent in the main loop adds to the
+		 * interval between main loop invocations.
+		 */
 		emscripten_set_main_loop(em_main_loop, 100, 1);
 	}
 #endif
