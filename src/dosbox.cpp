@@ -188,6 +188,8 @@ increaseticks:
 				 */
 				Bit32s CPU_Cycles_FromBacklog = (Bit64s)CPU_CycleMax *
 				                                25 / ticksRemain;
+				if (CPU_Cycles_FromBacklog < CPU_CYCLES_LOWER_LIMIT)
+					CPU_Cycles_FromBacklog = CPU_CYCLES_LOWER_LIMIT;
 #endif
 				if (ticksScheduled >= 250 || ticksDone >= 250
 #ifndef EMSCRIPTEN
