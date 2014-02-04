@@ -17,4 +17,6 @@ dosbox_LDADD = cpu/libcpu.a debug/libdebug.a dos/libdos.a fpu/libfpu.a  hardware
 
 EXTRA_DIST = winres.rc dosbox.ico
 
-
+if EMSCRIPTEN_BUILD
+dosbox_LDFLAGS=-s TOTAL_MEMORY=67108864 --pre-js pre.js
+endif
