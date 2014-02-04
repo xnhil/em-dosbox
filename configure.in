@@ -417,6 +417,8 @@ else
 fi
 
 AH_TEMPLATE(C_X11_XKB,[define to 1 if you have XKBlib.h and X11 lib])
+dnl Emscripten has X11 headers now, but DOSBox should only use SDL.
+AS_IF([test "x$enable_emscripten" != "xyes"],[
 AC_CHECK_LIB(X11, main, have_x11_lib=yes, have_x11_lib=no, )
 AC_CHECK_HEADER(X11/XKBlib.h, have_x11_h=yes, have_x11_h=no, )
 AC_MSG_CHECKING(for XKBlib support)
@@ -427,6 +429,7 @@ if test x$have_x11_lib = xyes -a x$have_x11_h = xyes ; then
 else
    AC_MSG_RESULT(no)
 fi
+])
 
 AH_TEMPLATE(C_OPENGL,[Define to 1 to use opengl display output support])
 dnl OpenGL support cannot successfully compile yet with Emscripten.
