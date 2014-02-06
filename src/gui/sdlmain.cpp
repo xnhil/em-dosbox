@@ -1007,7 +1007,7 @@ static void GUI_StartUp(Section * sec) {
 	sdl.active=false;
 	sdl.updating=false;
 
-#if !defined(MACOSX)
+#if !defined(MACOSX) && !defined(EMSCRIPTEN)
 	/* Set Icon (must be done before any sdl_setvideomode call) */
 	/* But don't set it on OS X, as we use a nicer external icon there. */
 #if WORDS_BIGENDIAN
