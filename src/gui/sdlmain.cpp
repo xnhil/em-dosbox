@@ -1188,6 +1188,13 @@ static void GUI_StartUp(Section * sec) {
 	if (splash_surf) {
 		SDL_FillRect(splash_surf, NULL, SDL_MapRGB(splash_surf->format, 0, 0, 0));
 
+		if (SDL_MUSTLOCK(splash_surf) && SDL_LockSurface(splash_surf)) {
+			SDL_FreeSurface(splash_surf);
+			splash_surf = NULL;
+		}
+	}
+
+	if (splash_surf) {
 		Bit8u* tmpbufp = new Bit8u[640*400*3];
 		GIMP_IMAGE_RUN_LENGTH_DECODE(tmpbufp,gimp_image.rle_pixel_data,640*400,3);
 		for (Bitu y=0; y<400; y++) {
@@ -1202,6 +1209,9 @@ static void GUI_StartUp(Section * sec) {
 //#endif
 			}
 		}
+
+		if (SDL_MUSTLOCK(splash_surf))
+			SDL_UnlockSurface(splash_surf);
 
 		bool exit_splash = false;
 
