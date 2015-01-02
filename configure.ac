@@ -31,7 +31,7 @@ AC_CANONICAL_BUILD
 
 dnl Setup for automake
 AM_INIT_AUTOMAKE
-AM_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADER(config.h)
 
 dnl Checks for programs.
 AC_PROG_MAKE_SET
