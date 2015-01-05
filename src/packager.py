@@ -65,8 +65,12 @@ def run_packager():
         datafile = OUTPUT_DATA
 
     try:
-        PYTHON = 'python'
-        res = subprocess.check_output([PYTHON,
+        if 'PYTHON' in globals():
+            python_path = PYTHON
+        else:
+            python_path = sys.executable
+
+        res = subprocess.check_output([python_path,
                                        os.path.join(EMSCRIPTEN_ROOT, "tools",
                                                     "file_packager.py"),
                                        datafile,
