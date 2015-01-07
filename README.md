@@ -19,19 +19,18 @@ Status
 
 Currently, DOSBox compiles and runs various real-mode games successfully.
 DOSBox has not been fully re-structured for running in a web browser via the
-Emscripten main loop. The interactive DOS prompt cannot be used and leads to a
+Emscripten main loop. Some programs can cause DOSBox to run a loop without
+returning control to the browser, causing DOSBox to appear to hang.
+The interactive DOS prompt cannot be used and leads to a
 hang. DOSBox can only run programs via command line arguments.
 
 Other issues
 ------------
 
-* Emscripten [issue 1975](https://github.com/kripken/emscripten/issues/1975)
-prevents asm.js compilation in Firefox. It has been [fixed in
-incoming](https://github.com/kripken/emscripten/commit/04b5c9d3d434e1bf6ab0dab4
-2fd27fd4a4dd0721).
-* Emscripten [issue 1992](https://github.com/kripken/emscripten/issues/1992)
-prevents HTML files built by src/packager.py from working. It has also been
-fixed in incoming.
+* Emscripten issues
+[1975](https://github.com/kripken/emscripten/issues/1975) and
+[1992](https://github.com/kripken/emscripten/issues/1992) were problems in
+the past. Use Emscripten 1.8.11 or later.
 * Emscripten [issue 1909](https://github.com/kripken/emscripten/issues/1909)
 makes some switch statements highly inefficient. The main switch statements
 used for CPU emulation end up using long chains of comparisons, making DOSBox
@@ -40,11 +39,11 @@ very slow. This problem does not have a proper fix. This
 but it can be used and gives good performance in Firefox.
 * V8 JavaScript Engine [issue
 2275](http://code.google.com/p/v8/issues/detail?id=2275) prevents large switch
-statements from being optimized. The simple, normal and prefetch cores are
-automatically transformed to avoid this issue. Case statements for x86
-instructions become functions, and an array of function pointers is used
-instead of the switch statements. The `--enable-funarray` configure option
-controls this.
+statements from being optimized. Because of this and emscripten issue 1909,
+the simple, normal and prefetch cores are automatically transformed. Case
+statements for x86 instructions become functions, and an array of function
+pointers is used instead of the switch statements. The `--enable-funarray`
+configure option controls this and defaults to yes.
 * The same origin policy prevents access to data files when running via a
 file:// URL in Chrome. Use a web server such as `python -m SimpleHTTPServer`
 instead.
@@ -58,12 +57,11 @@ not been minified.
 Compiling
 ---------
 
-Ensure that Emscripten has fixes for issues noted above. Use incoming and/or
-manually apply patches as needed. Then simply configure with `emconfigure
-./configure` and build with `make`. This will create `src/dosbox.js` which
-contains DOSBox and `src/dosbox.html`, which is a web page for use as a
-template by the packager. These cannot be used as-is. You need to provide
-DOSBox with files to run and command line arguments for running them.
+Configure with `emconfigure ./configure` and build with `make`.
+This will create `src/dosbox.js` which contains DOSBox and `src/dosbox.html`,
+a web page for use as a template by the packager. These cannot be used as-is.
+You need to provide DOSBox with files to run and command line arguments for
+running them.
 
 Packaging DOS programs
 ----------------------
@@ -78,5 +76,5 @@ specifying which executable to run. For examle, if Major Stryker is in
 subdirectory `major_stryker`, package it using `./packager.py stryker
 major_stryker STRYKER.EXE`. Again, place `stryker.html` and `stryker.data` in
 the same directory as `dosbox.js` and view `stryker.html` to run the game.
-Remember that the same origin policy prevent access to data files in some
+Remember that the same origin policy prevents access to data files in some
 browsers when using file:// URLs.
