@@ -41,7 +41,9 @@
 #define RAW_SECTOR_SIZE		2352
 #define COOKED_SECTOR_SIZE	2048
 
+#if !SDL_VERSION_ATLEAST(2,0,0)
 enum { CDROM_USE_SDL, CDROM_USE_ASPI, CDROM_USE_IOCTL_DIO, CDROM_USE_IOCTL_DX, CDROM_USE_IOCTL_MCI };
+#endif
 
 typedef struct SMSF {
 	unsigned char min;
@@ -84,7 +86,7 @@ public:
 	virtual void	InitNewMedia		(void) {};
 };	
 
-#ifndef EMSCRIPTEN
+#if !defined(EMSCRIPTEN) && !SDL_VERSION_ATLEAST(2,0,0)
 class CDROM_Interface_SDL : public CDROM_Interface
 {
 public:
@@ -113,7 +115,7 @@ private:
 	int		driveID;
 	Uint32	oldLeadOut;
 };
-#endif /* !EMSCRIPTEN */
+#endif /* !defined(EMSCRIPTEN) && !SDL_VERSION_ATLEAST(2,0,0) */
 
 class CDROM_Interface_Fake : public CDROM_Interface
 {
@@ -240,6 +242,8 @@ typedef	std::vector<Track>::iterator	track_it;
 	Bit8u	subUnit;
 };
 #endif /* !EMSCRIPTEN */
+
+#if !SDL_VERSION_ATLEAST(2,0,0)
 
 #if defined (WIN32)	/* Win 32 */
 
@@ -397,5 +401,7 @@ private:
 };
 
 #endif /* LINUX */
+
+#endif /* !SDL_VERSION_ATLEAST(2,0,0) */
 
 #endif /* __CDROM_INTERFACE__ */

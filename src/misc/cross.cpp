@@ -30,6 +30,7 @@
 #include <shlobj.h>
 #endif
 
+
 #if defined HAVE_SYS_TYPES_H && defined HAVE_PWD_H
 #include <sys/types.h>
 #include <pwd.h>
