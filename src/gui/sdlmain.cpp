@@ -2707,7 +2707,13 @@ int main(int argc, char* argv[]) {
 	 */
 	putenv(const_cast<char*>("SDL_DISABLE_LOCK_KEYS=1"));
 #endif
-	if ( SDL_Init( SDL_INIT_AUDIO|SDL_INIT_VIDEO|SDL_INIT_TIMER
+	if ( SDL_Init( SDL_INIT_AUDIO|SDL_INIT_VIDEO
+	/* SDL2 for Emscripten doesn't support this because it lacks threads.
+	 * DOSBox uses SDL_Sleep() and SDL_GetTicks(), which seem to work anyways.
+	 */
+#if !defined(EMSCRIPTEN) || !SDL_VERSION_ATLEAST(2,0,0)
+		|SDL_INIT_TIMER
+#endif
 #if !defined(EMSCRIPTEN) && !SDL_VERSION_ATLEAST(2,0,0)
 		|SDL_INIT_CDROM
 #endif

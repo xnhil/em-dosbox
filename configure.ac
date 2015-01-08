@@ -65,10 +65,12 @@ dnl Check for SDL
 dnl When cross-compiling, the SDL prefix needs to be set, so the right
 dnl sdl-config is found. SDL is included with Emscripten and its
 dnl sdl-config does nothing, so just assume SDL is present then.
+AC_ARG_WITH(sdl2, [AC_HELP_STRING([--with-sdl2=@<:@no/yes/path@:>@],
+                  [Build using SDL 2.0 instead of SDL 1.2.
+                   If using Emscripten, provide path to SDL-emscripten.])]
+                  [with_sdl2=yes], )
 AS_IF([test "x$enable_emscripten" != "xyes"],[
 SDL_VERSION=1.2.0
-AC_ARG_WITH(sdl2, [  --with-sdl2             Build using SDL 2.0 instead of SDL 1.2],
-		    with_sdl2=yes, )
 AM_PATH_SDL(:,
             :,
 	    :
@@ -210,6 +212,8 @@ int x=10;if( __builtin_expect ((x==1),0) ) ;
 #switch language back
 AC_LANG_POP(C++)
 
+# Host compiler may support this, but Emscripten does not.
+AS_IF([test "x$enable_emscripten" != "xyes"],[
 dnl test if compiler supports -mno-ms-bitfields as it is bugged 
 # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=52991
 BACKUP_CFLAGS="$CFLAGS"
@@ -224,6 +228,7 @@ AC_MSG_RESULT([yes])
 CXXFLAGS="$CXXFLAGS -mno-ms-bitfields"
 ],[AC_MSG_RESULT([no])])
 CFLAGS="$BACKUP_CFLAGS"
+])
 
 dnl enable disable alsa and pass it's cflags to CXXFLAGS
 AC_ARG_ENABLE(alsa-midi,
@@ -569,6 +574,18 @@ esac
        AM_CONDITIONAL(HAVE_WINDRES, test "x$WINDRES" != "x:")
        AC_SUBST(WINDRES)
 
+
+# SDL configuration for Emscripten
+# This is at the bottom because -lSDL2 breaks compilation of test files
+# above with the host C compiler.
+AS_IF([test "x$enable_emscripten" = "xyes"],[
+  AS_IF([test x$with_sdl2 != "xno"],[
+  # Using SDL2, $with_sdl should be path to it.
+  LIBS="$LIBS -L$with_sdl2/build/.libs/ -lSDL2"
+  CXXFLAGS="$CXXFLAGS -Wno-warn-absolute-paths -I$with_sdl2/include"
+  with_sdl2=yes
+  ])
+])
 
 AC_CONFIG_FILES([ 
 Makefile

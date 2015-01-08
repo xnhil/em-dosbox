@@ -63,6 +63,10 @@ a web page for use as a template by the packager. These cannot be used as-is.
 You need to provide DOSBox with files to run and command line arguments for
 running them.
 
+This branch supports use of SDL 2.x.
+[Install SDL 2 for Emscripten using these instructions](http://gsathya.in/blog/mozilla/sdl2-emscripten.html).
+Then give --with-sdl2=/path/to/SDL-emscripten argument to configure.
+
 Packaging DOS programs
 ----------------------
 
