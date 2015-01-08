@@ -21,6 +21,8 @@
 // SDL CDROM 
 // ******************************************************
 
+#include "SDL_version.h"
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -29,6 +31,9 @@
 #include "SDL.h"
 #include "support.h"
 #include "cdrom.h"
+
+// On all platforms, if SDL 2.0 is used then we don't support physical CD-ROMs.
+#if !SDL_VERSION_ATLEAST(2,0,0)
 
 CDROM_Interface_SDL::CDROM_Interface_SDL(void) {
 	driveID		= 0;
@@ -143,6 +148,8 @@ bool CDROM_Interface_SDL::LoadUnloadMedia(bool unload) {
 	return success;
 }
 
+#endif /* !SDL_VERSION_ATLEAST(2,0,0) */
+
 int CDROM_GetMountType(char* path, int forceCD) {
 // 0 - physical CDROM
 // 1 - Iso file
@@ -157,6 +164,7 @@ int CDROM_GetMountType(char* path, int forceCD) {
 	upcase(buffer);
 #endif
 
+#if !SDL_VERSION_ATLEAST(2,0,0)
 	int num = SDL_CDNumDrives();
 	// If cd drive is forced then check if its in range and return 0
 	if ((forceCD>=0) && (forceCD<num)) {
@@ -169,6 +177,7 @@ int CDROM_GetMountType(char* path, int forceCD) {
 		cdName = SDL_CDName(i);
 		if (strcmp(buffer,cdName)==0) return 0;
 	};
+#endif
 	
 	// Detect ISO
 	struct stat file_stat;
@@ -214,5 +223,3 @@ bool CDROM_Interface_Fake :: GetMediaTrayStatus(bool& mediaPresent, bool& mediaC
 	trayOpen     = false;
 	return true;
 }
-
-
