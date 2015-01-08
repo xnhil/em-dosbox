@@ -1474,7 +1474,6 @@ Bitu GFX_GetRGB(Bit8u red,Bit8u green,Bit8u blue) {
 	case SCREEN_TEXTURE:
 		return SDL_MapRGB(sdl.texture.pixelFormat,red,green,blue);
 #else
->>>>>>> sdl2_20140712-noandroid
 	case SCREEN_OVERLAY:
 		{
 			Bit8u y =  ( 9797*(red) + 19237*(green) +  3734*(blue) ) >> 15;
@@ -2392,7 +2391,8 @@ void Config_Add_SDL() {
 		"opengl", "openglnb",
 #endif
 		0 };
-#if SDL_VERSION_ATLEAST(2, 0, 0)
+#if SDL_VERSION_ATLEAST(2, 0, 0) && !defined(EMSCRIPTEN)
+	/* SDL 2 for Emscripten doesn't support "texture" yet. */
 	Pstring = sdl_sec->Add_string("output",Property::Changeable::Always,"texture");
 #else
 	Pstring = sdl_sec->Add_string("output",Property::Changeable::Always,"surface");
