@@ -78,3 +78,16 @@ major_stryker STRYKER.EXE`. Again, place `stryker.html` and `stryker.data` in
 the same directory as `dosbox.js` and view `stryker.html` to run the game.
 Remember that the same origin policy prevents access to data files in some
 browsers when using file:// URLs.
+
+Credits
+-------
+
+Most of the credit belongs to the
+[DOSBox crew](http://www.dosbox.com/crew.php).
+They created DOSBox and made it compatible with a wide variety of DOS games.
+[Ismail Khatib](https://github.com/CeRiAl) got DOSBox
+to compile with Emscripten, but didn't get it to work.
+[Boris Gjenero](https://github.com/dreamlayers)
+started with that and got it to work. Then, Boris re-implemented
+Ismail's changes a cleaner way, fixed issues and improved performance to make
+many games usable in web browsers.
