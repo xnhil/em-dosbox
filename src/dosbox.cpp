@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2002-2010  The DOSBox Team
+ *  Copyright (C) 2002-2013  The DOSBox Team
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -16,7 +16,6 @@
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-/* $Id: dosbox.cpp,v 1.150 2009-11-03 20:17:42 qbix79 Exp $ */
 
 #include <stdlib.h>
 #include <stdarg.h>
@@ -45,6 +44,7 @@
 #include "mapper.h"
 #include "ints/int10.h"
 #include "render.h"
+#include "pci_bus.h"
 
 Config * control;
 MachineType machine;
@@ -76,6 +76,10 @@ void DMA_Init(Section*);
 void MIXER_Init(Section*);
 void MIDI_Init(Section*);
 void HARDWARE_Init(Section*);
+
+#if defined(PCI_FUNCTIONALITY_ENABLED)
+void PCI_Init(Section*);
+#endif
 
 
 void KEYBOARD_Init(Section*);	//TODO This should setup INT 16 too but ok ;)
@@ -140,10 +144,11 @@ static Bitu Normal_Loop(void) {
 #endif
 	while (1) {
 		if (PIC_RunQueue()) {
-			ret=(*cpudecoder)();
+			ret = (*cpudecoder)();
 			if (GCC_UNLIKELY(ret<0)) return 1;
 			if (ret>0) {
-				Bitu blah=(*CallBack_Handlers[ret])();
+				if (GCC_UNLIKELY(ret >= CB_MAX)) return 0;
+				Bitu blah = (*CallBack_Handlers[ret])();
 				if (GCC_UNLIKELY(blah)) return blah;
 			}
 #if C_DEBUG
@@ -209,7 +214,7 @@ increaseticks:
 					Bit32s new_cmax = CPU_CycleMax;
 					Bit64s cproc = (Bit64s)CPU_CycleMax * (Bit64s)ticksScheduled;
 					if (cproc > 0) {
-						/* ignore the cycles added due to the io delay code in order
+						/* ignore the cycles added due to the IO delay code in order
 						   to have smoother auto cycle adjustments */
 						double ratioremoved = (double) CPU_IODelayRemoved / (double) cproc;
 						if (ratioremoved < 1.0) {
@@ -219,10 +224,13 @@ increaseticks:
 							if (ticksScheduled >= 250 && ticksDone < 10 && ratio > 20480) 
 								ratio = 20480;
 							Bit64s cmax_scaled = (Bit64s)CPU_CycleMax * (Bit64s)ratio;
+							/* The auto cycle code seems reliable enough to disable the fast cut back code.
+							 * This should improve the fluency of complex games.
 							if (ratio <= 1024) 
 								new_cmax = (Bit32s)(cmax_scaled / (Bit64s)1024);
 							else 
-								new_cmax = (Bit32s)(1 + (CPU_CycleMax >> 1) + cmax_scaled / (Bit64s)2048);
+							 */
+							new_cmax = (Bit32s)(1 + (CPU_CycleMax >> 1) + cmax_scaled / (Bit64s)2048);
 						}
 					}
 
@@ -415,14 +423,14 @@ void DOSBOX_Init(void) {
 	const char* machines[] = {
 		"hercules", "cga", "tandy", "pcjr", "ega",
 		"vgaonly", "svga_s3", "svga_et3000", "svga_et4000",
-		 "svga_paradise", "vesa_nolfb", "vesa_oldvbe", 0 };
+		"svga_paradise", "vesa_nolfb", "vesa_oldvbe", 0 };
 	secprop=control->AddSection_prop("dosbox",&DOSBOX_RealInit);
 	Pstring = secprop->Add_path("language",Property::Changeable::Always,"");
 	Pstring->Set_help("Select another language file.");
 
 	Pstring = secprop->Add_string("machine",Property::Changeable::OnlyAtStart,"svga_s3");
 	Pstring->Set_values(machines);
-	Pstring->Set_help("The type of machine tries to emulate.");
+	Pstring->Set_help("The type of machine DOSBox tries to emulate.");
 
 	Pstring = secprop->Add_path("captures",Property::Changeable::Always,"capture");
 	Pstring->Set_help("Directory where things like wave, midi, screenshot get captured.");
@@ -458,8 +466,8 @@ void DOSBOX_Init(void) {
 
 	Pmulti = secprop->Add_multi("scaler",Property::Changeable::Always," ");
 	Pmulti->SetValue("normal2x");
-	Pmulti->Set_help("Scaler used to enlarge/enhance low resolution modes.\n"
-	                 "  If 'forced' is appended, then the scaler will be used even if the result might not be desired.");
+	Pmulti->Set_help("Scaler used to enlarge/enhance low resolution modes. If 'forced' is appended,\n"
+	                 "then the scaler will be used even if the result might not be desired.");
 	Pstring = Pmulti->GetSection()->Add_string("type",Property::Changeable::Always,"normal2x");
 
 	const char *scalers[] = { 
@@ -491,7 +499,8 @@ void DOSBOX_Init(void) {
 #endif
 	);
 	Pstring->Set_values(cores);
-	Pstring->Set_help("CPU Core used in emulation. auto will switch to dynamic if available and appropriate.");
+	Pstring->Set_help("CPU Core used in emulation. auto will switch to dynamic if available and\n"
+		"appropriate.");
 
 	const char* cputype_values[] = { "auto", "386", "386_slow", "486_slow", "pentium_slow", "386_prefetch", 0};
 	Pstring = secprop->Add_string("cputype",Property::Changeable::Always,"auto");
@@ -506,9 +515,10 @@ void DOSBOX_Init(void) {
 		"Cycles can be set in 3 ways:\n"
 		"  'auto'          tries to guess what a game needs.\n"
 		"                  It usually works, but can fail for certain games.\n"
-		"  'fixed #number' will set a fixed amount of cycles. This is what you usually need if 'auto' fails.\n"
-		"                  (Example: fixed 4000).\n"
-		"  'max'           will allocate as much cycles as your computer is able to handle.\n");
+		"  'fixed #number' will set a fixed amount of cycles. This is what you usually\n"
+		"                  need if 'auto' fails (Example: fixed 4000).\n"
+		"  'max'           will allocate as much cycles as your computer is able to\n"
+		"                  handle.");
 
 	const char* cyclest[] = { "auto","fixed","max","%u",0 };
 	Pstring = Pmulti_remain->GetSection()->Add_string("type",Property::Changeable::Always,"auto");
@@ -519,7 +529,7 @@ void DOSBOX_Init(void) {
 	
 	Pint = secprop->Add_int("cycleup",Property::Changeable::Always,10);
 	Pint->SetMinMax(1,1000000);
-	Pint->Set_help("Amount of cycles to decrease/increase with keycombo.(CTRL-F11/CTRL-F12)");
+	Pint->Set_help("Amount of cycles to decrease/increase with keycombos.(CTRL-F11/CTRL-F12)");
 
 	Pint = secprop->Add_int("cycledown",Property::Changeable::Always,20);
 	Pint->SetMinMax(1,1000000);
@@ -531,6 +541,12 @@ void DOSBOX_Init(void) {
 	secprop->AddInitFunction(&DMA_Init);//done
 	secprop->AddInitFunction(&VGA_Init);
 	secprop->AddInitFunction(&KEYBOARD_Init);
+
+
+#if defined(PCI_FUNCTIONALITY_ENABLED)
+	secprop=control->AddSection_prop("pci",&PCI_Init,false); //PCI bus
+#endif
+
 
 	secprop=control->AddSection_prop("mixer",&MIXER_Init);
 	Pbool = secprop->Add_bool("nosound",Property::Changeable::OnlyAtStart,false);
@@ -573,6 +589,9 @@ void DOSBOX_Init(void) {
 
 	Pstring = secprop->Add_string("midiconfig",Property::Changeable::WhenIdle,"");
 	Pstring->Set_help("Special configuration options for the device driver. This is usually the id of the device you want to use.\n"
+	                  "  or in the case of coreaudio, you can specify a soundfont here.\n"
+	                  "  When using a Roland MT-32 rev. 0 as midi output device, some games may require a delay in order to prevent 'buffer overflow' issues.\n"
+	                  "  In that case, add 'delaysysex', for example: midiconfig=2 delaysysex\n"
 	                  "  See the README/Manual for more details.");
 
 #if C_DEBUG
@@ -749,8 +768,13 @@ void DOSBOX_Init(void) {
 	Pbool->Set_help("Enable XMS support.");
 
 	secprop->AddInitFunction(&EMS_Init,true);//done
-	Pbool = secprop->Add_bool("ems",Property::Changeable::WhenIdle,true);
-	Pbool->Set_help("Enable EMS support.");
+	const char* ems_settings[] = { "true", "emsboard", "emm386", "false", 0};
+	Pstring = secprop->Add_string("ems",Property::Changeable::WhenIdle,"true");
+	Pstring->Set_values(ems_settings);
+	Pstring->Set_help("Enable EMS support. The default (=true) provides the best\n"
+		"compatibility but certain applications may run better with\n"
+		"other choices, or require EMS support to be disabled (=false)\n"
+		"to work at all.");
 
 	Pbool = secprop->Add_bool("umb",Property::Changeable::WhenIdle,true);
 	Pbool->Set_help("Enable UMB support.");
@@ -779,8 +803,8 @@ void DOSBOX_Init(void) {
 		"You can put your MOUNT lines here.\n"
 	);
 	MSG_Add("CONFIGFILE_INTRO",
-	        "# This is the configurationfile for DOSBox %s. (Please use the latest version of DOSBox)\n"
-	        "# Lines starting with a # are commentlines and are ignored by DOSBox.\n"
+	        "# This is the configuration file for DOSBox %s. (Please use the latest version of DOSBox)\n"
+	        "# Lines starting with a # are comment lines and are ignored by DOSBox.\n"
 	        "# They are used to (briefly) document the effect of each option.\n");
 	MSG_Add("CONFIG_SUGGESTED_VALUES", "Possible values");
 

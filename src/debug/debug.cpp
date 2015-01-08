@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2002-2010  The DOSBox Team
+ *  Copyright (C) 2002-2013  The DOSBox Team
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -16,7 +16,6 @@
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-/* $Id: debug.cpp,v 1.97 2009-04-11 19:49:52 c2woody Exp $ */
 
 #include "dosbox.h"
 #if C_DEBUG
@@ -62,8 +61,8 @@ int old_cursor_state;
 // Forwards
 static void DrawCode(void);
 static void DEBUG_RaiseTimerIrq(void);
-static void SaveMemory(Bitu seg, Bitu ofs1, Bit32u num);
-static void SaveMemoryBin(Bitu seg, Bitu ofs1, Bit32u num);
+static void SaveMemory(Bit16u seg, Bit32u ofs1, Bit32u num);
+static void SaveMemoryBin(Bit16u seg, Bit32u ofs1, Bit32u num);
 static void LogMCBS(void);
 static void LogGDT(void);
 static void LogLDT(void);
@@ -76,6 +75,7 @@ static void DrawVariables(void);
 char* AnalyzeInstruction(char* inst, bool saveSelector);
 Bit32u GetHexValue(char* str, char*& hex);
 
+#if 0
 class DebugPageHandler : public PageHandler {
 public:
 	Bitu readb(PhysPt /*addr*/) {
@@ -90,10 +90,8 @@ public:
 	}
 	void writed(PhysPt /*addr*/,Bitu /*val*/) {
 	}
-
-
-
 };
+#endif
 
 
 class DEBUG;
@@ -123,7 +121,6 @@ static char curSelectorName[3] = { 0,0,0 };
 static Segment oldsegs[6];
 static Bitu oldflags,oldcpucpl;
 DBGBlock dbg;
-static Bitu input_count;
 Bitu cycle_count;
 static bool debugging;
 
@@ -136,23 +133,34 @@ static void SetColor(Bitu test) {
 	}
 }
 
+#define MAXCMDLEN 254 
 struct SCodeViewData {	
-	int		cursorPos;
+	int     cursorPos;
 	Bit16u  firstInstSize;
-	Bit16u	useCS;
-	Bit32u	useEIPlast, useEIPmid;
-	Bit32u	useEIP;
+	Bit16u  useCS;
+	Bit32u  useEIPlast, useEIPmid;
+	Bit32u  useEIP;
 	Bit16u  cursorSeg;
-	Bit32u	cursorOfs;
-	bool	inputMode;
-	char	inputStr[255];
-	char	prevInputStr[255];
-
+	Bit32u  cursorOfs;
+	bool    ovrMode;
+	char    inputStr[MAXCMDLEN+1];
+	char    suspInputStr[MAXCMDLEN+1];
+	int     inputPos;
 } codeViewData;
 
-static Bit16u	dataSeg;
-static Bit32u	dataOfs;
-static bool		showExtend = true;
+static Bit16u  dataSeg;
+static Bit32u  dataOfs;
+static bool    showExtend = true;
+
+static void ClearInputLine(void) {
+	codeViewData.inputStr[0] = 0;
+	codeViewData.inputPos = 0;
+}
+
+// History stuff
+#define MAX_HIST_BUFFER 50
+static list<string> histBuff;
+static list<string>::iterator histBuffPos = histBuff.end();
 
 /***********/
 /* Helpers */
@@ -273,32 +281,34 @@ class CBreakpoint
 public:
 
 	CBreakpoint(void);
-	void					SetAddress		(Bit16u seg, Bit32u off)	{ location = GetAddress(seg,off);	type = BKPNT_PHYSICAL; segment = seg; offset = off; };
-	void					SetAddress		(PhysPt adr)				{ location = adr;				type = BKPNT_PHYSICAL; };
-	void					SetInt			(Bit8u _intNr, Bit16u ah)	{ intNr = _intNr, ahValue = ah; type = BKPNT_INTERRUPT; };
+	void					SetAddress		(Bit16u seg, Bit32u off)	{ location = GetAddress(seg,off); type = BKPNT_PHYSICAL; segment = seg; offset = off; };
+	void					SetAddress		(PhysPt adr)				{ location = adr; type = BKPNT_PHYSICAL; };
+	void					SetInt			(Bit8u _intNr, Bit16u ah, Bit16u al)	{ intNr = _intNr, ahValue = ah; alValue = al; type = BKPNT_INTERRUPT; };
 	void					SetOnce			(bool _once)				{ once = _once; };
 	void					SetType			(EBreakpoint _type)			{ type = _type; };
 	void					SetValue		(Bit8u value)				{ ahValue = value; };
+	void					SetOther		(Bit8u other)				{ alValue = other; };
 
 	bool					IsActive		(void)						{ return active; };
 	void					Activate		(bool _active);
 
 	EBreakpoint				GetType			(void)						{ return type; };
 	bool					GetOnce			(void)						{ return once; };
-	PhysPt					GetLocation		(void)						{ if (GetType()!=BKPNT_INTERRUPT)	return location;	else return 0; };
+	PhysPt					GetLocation		(void)						{ return location; };
 	Bit16u					GetSegment		(void)						{ return segment; };
 	Bit32u					GetOffset		(void)						{ return offset; };
-	Bit8u					GetIntNr		(void)						{ if (GetType()==BKPNT_INTERRUPT)	return intNr;		else return 0; };
-	Bit16u					GetValue		(void)						{ if (GetType()!=BKPNT_PHYSICAL)	return ahValue;		else return 0; };
+	Bit8u					GetIntNr		(void)						{ return intNr; };
+	Bit16u					GetValue		(void)						{ return ahValue; };
+	Bit16u					GetOther		(void)						{ return alValue; };
 
 	// statics
 	static CBreakpoint*		AddBreakpoint		(Bit16u seg, Bit32u off, bool once);
-	static CBreakpoint*		AddIntBreakpoint	(Bit8u intNum, Bit16u ah, bool once);
+	static CBreakpoint*		AddIntBreakpoint	(Bit8u intNum, Bit16u ah, Bit16u al, bool once);
 	static CBreakpoint*		AddMemBreakpoint	(Bit16u seg, Bit32u off);
 	static void				ActivateBreakpoints	(PhysPt adr, bool activate);
 	static bool				CheckBreakpoint		(PhysPt adr);
 	static bool				CheckBreakpoint		(Bitu seg, Bitu off);
-	static bool				CheckIntBreakpoint	(PhysPt adr, Bit8u intNr, Bit16u ahValue);
+	static bool				CheckIntBreakpoint	(PhysPt adr, Bit8u intNr, Bit16u ahValue, Bit16u alValue);
 	static bool				IsBreakpoint		(PhysPt where);
 	static bool				IsBreakpointDrawn	(PhysPt where);
 	static bool				DeleteBreakpoint	(PhysPt where);
@@ -317,6 +327,7 @@ private:
 	// Int
 	Bit8u		intNr;
 	Bit16u		ahValue;
+	Bit16u		alValue;
 	// Shared
 	bool		active;
 	bool		once;
@@ -329,7 +340,7 @@ public:
 CBreakpoint::CBreakpoint(void):
 location(0),
 active(false),once(false),
-segment(0),offset(0),intNr(0),ahValue(0),
+segment(0),offset(0),intNr(0),ahValue(0),alValue(0),
 type(BKPNT_UNKNOWN) { };
 
 void CBreakpoint::Activate(bool _active)
@@ -357,7 +368,7 @@ void CBreakpoint::Activate(bool _active)
 // Statics
 std::list<CBreakpoint*> CBreakpoint::BPoints;
 CBreakpoint*			CBreakpoint::ignoreOnce = 0;
-Bitu					ignoreAddressOnce = 0;
+PhysPt					ignoreAddressOnce = 0;
 
 CBreakpoint* CBreakpoint::AddBreakpoint(Bit16u seg, Bit32u off, bool once)
 {
@@ -368,10 +379,10 @@ CBreakpoint* CBreakpoint::AddBreakpoint(Bit16u seg, Bit32u off, bool once)
 	return bp;
 };
 
-CBreakpoint* CBreakpoint::AddIntBreakpoint(Bit8u intNum, Bit16u ah, bool once)
+CBreakpoint* CBreakpoint::AddIntBreakpoint(Bit8u intNum, Bit16u ah, Bit16u al, bool once)
 {
 	CBreakpoint* bp = new CBreakpoint();
-	bp->SetInt			(intNum,ah);
+	bp->SetInt			(intNum,ah,al);
 	bp->SetOnce			(once);
 	BPoints.push_front	(bp);
 	return bp;
@@ -394,7 +405,7 @@ void CBreakpoint::ActivateBreakpoints(PhysPt adr, bool activate)
 	CBreakpoint* bp;
 	for(i=BPoints.begin(); i != BPoints.end(); i++) {
 		bp = (*i);
-		// Do not activate, when bp is an actual adress
+		// Do not activate, when bp is an actual address
 		if (activate && (bp->GetType()==BKPNT_PHYSICAL) && (bp->GetLocation()==adr)) {
 			// Do not activate :)
 			continue;
@@ -404,7 +415,7 @@ void CBreakpoint::ActivateBreakpoints(PhysPt adr, bool activate)
 };
 
 bool CBreakpoint::CheckBreakpoint(Bitu seg, Bitu off)
-// Checks if breakpoint is valid an should stop execution
+// Checks if breakpoint is valid and should stop execution
 {
 	if ((ignoreAddressOnce!=0) && (GetAddress(seg,off)==ignoreAddressOnce)) {
 		ignoreAddressOnce = 0;
@@ -467,8 +478,8 @@ bool CBreakpoint::CheckBreakpoint(Bitu seg, Bitu off)
 	return false;
 };
 
-bool CBreakpoint::CheckIntBreakpoint(PhysPt adr, Bit8u intNr, Bit16u ahValue)
-// Checks if interrupt breakpoint is valid an should stop execution
+bool CBreakpoint::CheckIntBreakpoint(PhysPt adr, Bit8u intNr, Bit16u ahValue, Bit16u alValue)
+// Checks if interrupt breakpoint is valid and should stop execution
 {
 	if ((ignoreAddressOnce!=0) && (adr==ignoreAddressOnce)) {
 		ignoreAddressOnce = 0;
@@ -482,8 +493,8 @@ bool CBreakpoint::CheckIntBreakpoint(PhysPt adr, Bit8u intNr, Bit16u ahValue)
 	for(i=BPoints.begin(); i != BPoints.end(); i++) {
 		bp = (*i);
 		if ((bp->GetType()==BKPNT_INTERRUPT) && bp->IsActive() && (bp->GetIntNr()==intNr)) {
-			if ((bp->GetValue()==BPINT_ALL) || (bp->GetValue()==ahValue)) {
-				// Ignoie it once ?
+			if (((bp->GetValue()==BPINT_ALL) || (bp->GetValue()==ahValue)) && ((bp->GetOther()==BPINT_ALL) || (bp->GetOther()==alValue))) {
+				// Ignore it once ?
 				if (ignoreOnce==bp) {
 					ignoreOnce=0;
 					bp->Activate(true);
@@ -598,8 +609,9 @@ void CBreakpoint::ShowList(void)
 		if (bp->GetType()==BKPNT_PHYSICAL) {
 			DEBUG_ShowMsg("%02X. BP %04X:%04X\n",nr,bp->GetSegment(),bp->GetOffset());
 		} else if (bp->GetType()==BKPNT_INTERRUPT) {
-			if (bp->GetValue()==BPINT_ALL)	DEBUG_ShowMsg("%02X. BPINT %02X\n",nr,bp->GetIntNr());					
-			else							DEBUG_ShowMsg("%02X. BPINT %02X AH=%02X\n",nr,bp->GetIntNr(),bp->GetValue());
+			if (bp->GetValue()==BPINT_ALL) DEBUG_ShowMsg("%02X. BPINT %02X\n",nr,bp->GetIntNr());
+			else if (bp->GetOther()==BPINT_ALL) DEBUG_ShowMsg("%02X. BPINT %02X AH=%02X\n",nr,bp->GetIntNr(),bp->GetValue());
+			else DEBUG_ShowMsg("%02X. BPINT %02X AH=%02X AL=%02X\n",nr,bp->GetIntNr(),bp->GetValue(),bp->GetOther());
 		} else if (bp->GetType()==BKPNT_MEMORY) {
 			DEBUG_ShowMsg("%02X. BPMEM %04X:%04X (%02X)\n",nr,bp->GetSegment(),bp->GetOffset(),bp->GetValue());
 		} else if (bp->GetType()==BKPNT_MEMORY_PROT) {
@@ -613,7 +625,7 @@ void CBreakpoint::ShowList(void)
 
 bool DEBUG_Breakpoint(void)
 {
-	/* First get the phyiscal address and check for a set Breakpoint */
+	/* First get the physical address and check for a set Breakpoint */
 	if (!CBreakpoint::CheckBreakpoint(SegValue(cs),reg_eip)) return false;
 	// Found. Breakpoint is valid
 	PhysPt where=GetAddress(SegValue(cs),reg_eip);
@@ -623,9 +635,9 @@ bool DEBUG_Breakpoint(void)
 
 bool DEBUG_IntBreakpoint(Bit8u intNum)
 {
-	/* First get the phyiscal address and check for a set Breakpoint */
+	/* First get the physical address and check for a set Breakpoint */
 	PhysPt where=GetAddress(SegValue(cs),reg_eip);
-	if (!CBreakpoint::CheckIntBreakpoint(where,intNum,reg_ah)) return false;
+	if (!CBreakpoint::CheckIntBreakpoint(where,intNum,reg_ah,reg_al)) return false;
 	// Found. Breakpoint is valid
 	CBreakpoint::ActivateBreakpoints(where,false);	// Deactivate all breakpoints
 	return true;
@@ -673,7 +685,7 @@ static void DrawData(void) {
 	Bit32u address;
 	/* Data win */	
 	for (int y=0; y<8; y++) {
-		// Adress
+		// Address
 		if (add<0x10000) mvwprintw (dbg.win_data,1+y,0,"%04X:%04X     ",dataSeg,add);
 		else mvwprintw (dbg.win_data,1+y,0,"%04X:%08X ",dataSeg,add);
 		for (int x=0; x<16; x++) {
@@ -775,6 +787,8 @@ static void DrawCode(void) {
 				wattrset(dbg.win_code,COLOR_PAIR(PAIR_GREEN_BLACK));			
 				if (codeViewData.cursorPos==-1) {
 					codeViewData.cursorPos = i; // Set Cursor 
+				}
+				if (i == codeViewData.cursorPos) {
 					codeViewData.cursorSeg = SegValue(cs);
 					codeViewData.cursorOfs = disEIP;
 				}
@@ -837,12 +851,18 @@ static void DrawCode(void) {
 	
 	wattrset(dbg.win_code,0);			
 	if (!debugging) {
-		mvwprintw(dbg.win_code,10,0,"(Running)",codeViewData.inputStr);
-	} else { 
-		if(!*codeViewData.inputStr) { //Clear old commands
-			mvwprintw(dbg.win_code,10,0,"                                                                            ");
-		}
-		mvwprintw(dbg.win_code,10,0,"-> %s_  ",codeViewData.inputStr);
+		mvwprintw(dbg.win_code,10,0,"%s","(Running)");
+		wclrtoeol(dbg.win_code);
+	} else {
+		//TODO long lines
+		char* dispPtr = codeViewData.inputStr; 
+		char* curPtr = &codeViewData.inputStr[codeViewData.inputPos];
+		mvwprintw(dbg.win_code,10,0,"%c-> %s%c",
+			(codeViewData.ovrMode?'O':'I'),dispPtr,(*curPtr?' ':'_'));
+		wclrtoeol(dbg.win_code); // not correct in pdcurses if full line
+		if (*curPtr) {
+			mvwchgat(dbg.win_code,10,(curPtr-dispPtr+4),1,0,(PAIR_BLACK_GREY),NULL);
+ 		} 
 	}
 
 	wrefresh(dbg.win_code);
@@ -973,7 +993,7 @@ bool ParseCommand(char* str) {
 		return true;
 	};
 
-	if (command == "MEMDUMPBIN") { // Dump memory to file bineary
+	if (command == "MEMDUMPBIN") { // Dump memory to file binary
 		Bit16u seg = (Bit16u)GetHexValue(found,found); found++;
 		Bit32u ofs = GetHexValue(found,found); found++;
 		Bit32u num = GetHexValue(found,found); found++;
@@ -1018,6 +1038,11 @@ bool ParseCommand(char* str) {
 		name[12] = 0;
 		if(!name[0]) return false;
 		DEBUG_ShowMsg("DEBUG: Variable list load (%s) : %s.\n",name,(CDebugVar::LoadVars(name)?"ok":"failure"));
+		return true;
+	};
+
+	if (command == "ADDLOG") {
+		if(found && *found)	DEBUG_ShowMsg("NOTICE: %s\n",found);
 		return true;
 	};
 
@@ -1084,14 +1109,21 @@ bool ParseCommand(char* str) {
 
 	if (command == "BPINT") { // Add Interrupt Breakpoint
 		Bit8u intNr	= (Bit8u)GetHexValue(found,found);
-		bool all = !(*found);found++;
-		Bit8u valAH	= (Bit8u)GetHexValue(found,found);
+		bool all = !(*found);
+		Bit8u valAH = (Bit8u)GetHexValue(found,found);
 		if ((valAH==0x00) && (*found=='*' || all)) {
-			CBreakpoint::AddIntBreakpoint(intNr,BPINT_ALL,false);
+			CBreakpoint::AddIntBreakpoint(intNr,BPINT_ALL,BPINT_ALL,false);
 			DEBUG_ShowMsg("DEBUG: Set interrupt breakpoint at INT %02X\n",intNr);
 		} else {
-			CBreakpoint::AddIntBreakpoint(intNr,valAH,false);
-			DEBUG_ShowMsg("DEBUG: Set interrupt breakpoint at INT %02X AH=%02X\n",intNr,valAH);
+			all = !(*found);
+			Bit8u valAL = (Bit8u)GetHexValue(found,found);
+			if ((valAL==0x00) && (*found=='*' || all)) {
+				CBreakpoint::AddIntBreakpoint(intNr,valAH,BPINT_ALL,false);
+				DEBUG_ShowMsg("DEBUG: Set interrupt breakpoint at INT %02X AH=%02X\n",intNr,valAH);
+			} else {
+				CBreakpoint::AddIntBreakpoint(intNr,valAH,valAL,false);
+				DEBUG_ShowMsg("DEBUG: Set interrupt breakpoint at INT %02X AH=%02X AL=%02X\n",intNr,valAH,valAL);
+			}
 		}
 		return true;
 	};
@@ -1121,6 +1153,7 @@ bool ParseCommand(char* str) {
 		DEBUG_ShowMsg("DEBUG: Set code overview to %04X:%04X\n",codeSeg,codeOfs);
 		codeViewData.useCS	= codeSeg;
 		codeViewData.useEIP = codeOfs;
+		codeViewData.cursorPos = 0;
 		return true;
 	};
 
@@ -1226,6 +1259,7 @@ bool ParseCommand(char* str) {
 			DEBUG_ShowMsg("DEBUG: Set code overview to interrupt handler %X\n",intNr);
 			codeViewData.useCS	= mem_readw(intNr*4+2);
 			codeViewData.useEIP = mem_readw(intNr*4);
+			codeViewData.cursorPos = 0;
 			return true;
 		}
 	};
@@ -1259,7 +1293,8 @@ bool ParseCommand(char* str) {
 	if (command == "HELP" || command == "?") {
 		DEBUG_ShowMsg("Debugger commands (enter all values in hex or as register):\n");
 		DEBUG_ShowMsg("--------------------------------------------------------------------------\n");
-		DEBUG_ShowMsg("F3/F6                     - Re-enter previous command.\n");
+		DEBUG_ShowMsg("F3/F6                     - Previous command in history.\n");
+		DEBUG_ShowMsg("F4/F7                     - Next command in history.\n");
 		DEBUG_ShowMsg("F5                        - Run.\n");
 		DEBUG_ShowMsg("F9                        - Set/Remove breakpoint.\n");
 		DEBUG_ShowMsg("F10/F11                   - Step over / trace into instruction.\n");
@@ -1270,7 +1305,8 @@ bool ParseCommand(char* str) {
 		DEBUG_ShowMsg("Home/End                  - Scroll log messages.\n");
 		DEBUG_ShowMsg("BP     [segment]:[offset] - Set breakpoint.\n");
 		DEBUG_ShowMsg("BPINT  [intNr] *          - Set interrupt breakpoint.\n");
-		DEBUG_ShowMsg("BPINT  [intNr] [ah]       - Set interrupt breakpoint with ah.\n");
+		DEBUG_ShowMsg("BPINT  [intNr] [ah] *     - Set interrupt breakpoint with ah.\n");
+		DEBUG_ShowMsg("BPINT  [intNr] [ah] [al]  - Set interrupt breakpoint with ah and al.\n");
 #if C_HEAVY_DEBUG
 		DEBUG_ShowMsg("BPM    [segment]:[offset] - Set memory breakpoint (memory change).\n");
 		DEBUG_ShowMsg("BPPM   [selector]:[offset]- Set pmode-memory breakpoint (memory change).\n");
@@ -1285,7 +1321,7 @@ bool ParseCommand(char* str) {
 		DEBUG_ShowMsg("LOG [num]                 - Write cpu log file.\n");
 		DEBUG_ShowMsg("LOGS/LOGL [num]           - Write short/long cpu log file.\n");
 		DEBUG_ShowMsg("HEAVYLOG                  - Enable/Disable automatic cpu log when dosbox exits.\n");
-		DEBUG_ShowMsg("ZEROPROTECT               - Enable/Disable zero code execution detecion.\n");
+		DEBUG_ShowMsg("ZEROPROTECT               - Enable/Disable zero code execution detection.\n");
 #endif
 		DEBUG_ShowMsg("SR [reg] [value]          - Set register value.\n");
 		DEBUG_ShowMsg("SM [seg]:[off] [val] [.]..- Set memory with following values.\n");	
@@ -1293,6 +1329,8 @@ bool ParseCommand(char* str) {
 		DEBUG_ShowMsg("IV [seg]:[off] [name]     - Create var name for memory address.\n");
 		DEBUG_ShowMsg("SV [filename]             - Save var list in file.\n");
 		DEBUG_ShowMsg("LV [filename]             - Load var list from file.\n");
+
+		DEBUG_ShowMsg("ADDLOG [message]          - Add message to the log file.\n");
 
 		DEBUG_ShowMsg("MEMDUMP [seg]:[off] [len] - Write memory to file memdump.txt.\n");
 		DEBUG_ShowMsg("MEMDUMPBIN [s]:[o] [len]  - Write memory to file memdump.bin.\n");
@@ -1383,7 +1421,7 @@ char* AnalyzeInstruction(char* inst, bool saveSelector) {
 		// Variable found ?
 		CDebugVar* var = CDebugVar::FindVar(address);
 		if (var) {
-			// Replace occurance
+			// Replace occurrence
 			char* pos1 = strchr(inst,'[');
 			char* pos2 = strchr(inst,']');
 			if (pos1 && pos2) {
@@ -1476,12 +1514,12 @@ char* AnalyzeInstruction(char* inst, bool saveSelector) {
 		if (jmp) {
 			pos = strchr(instu,'$');
 			if (pos) {
-			pos = strchr(instu,'+');
-			if (pos) {
-				strcpy(result,"(down)");
-			} else {
-				strcpy(result,"(up)");
-			}
+				pos = strchr(instu,'+');
+				if (pos) {
+					strcpy(result,"(down)");
+				} else {
+					strcpy(result,"(up)");
+				}
 			}
 		} else {
 			sprintf(result,"(no jmp)");
@@ -1497,6 +1535,11 @@ Bit32u DEBUG_CheckKeys(void) {
 	if (key>0) {
 #if defined(WIN32) && defined(__PDCURSES__)
 		switch (key) {
+		case PADENTER:	key=0x0A;	break;
+		case PADSLASH:	key='/';	break;
+		case PADSTAR:	key='*';	break;
+		case PADMINUS:	key='-';	break;
+		case PADPLUS:	key='+';	break;
 		case ALT_D:
 			if (ungetch('D') != ERR) key=27;
 			break;
@@ -1518,7 +1561,7 @@ Bit32u DEBUG_CheckKeys(void) {
 		case 27:	// escape (a bit slow): Clears line. and processes alt commands.
 			key=getch();
 			if(key < 0) { //Purely escape Clear line
-				codeViewData.inputStr[0] = 0; 
+				ClearInputLine();
 				break;
 			}
 
@@ -1584,23 +1627,54 @@ Bit32u DEBUG_CheckKeys(void) {
 		case KEY_END:	// End: scroll log page down
 				DEBUG_RefreshPage(1);
 				break;
-		case KEY_F(6):  // Re-enter previous command (f1-f4 generate rubbish at my place)
-		case KEY_F(3):  // Re-enter previous command
-				// copy prevInputStr back into inputStr
-				safe_strncpy(codeViewData.inputStr, codeViewData.prevInputStr, sizeof(codeViewData.inputStr));
+		case KEY_IC:	// Insert: toggle insert/overwrite
+				codeViewData.ovrMode = !codeViewData.ovrMode;
 				break;
+		case KEY_LEFT:	// move to the left in command line
+				if (codeViewData.inputPos > 0) codeViewData.inputPos--;
+ 				break;
+		case KEY_RIGHT:	// move to the right in command line
+				if (codeViewData.inputStr[codeViewData.inputPos]) codeViewData.inputPos++;
+				break;
+		case KEY_F(6):	// previous command (f1-f4 generate rubbish at my place)
+		case KEY_F(3):	// previous command 
+				if (histBuffPos == histBuff.begin()) break;
+				if (histBuffPos == histBuff.end()) {
+					// copy inputStr to suspInputStr so we can restore it
+					safe_strncpy(codeViewData.suspInputStr, codeViewData.inputStr, sizeof(codeViewData.suspInputStr));
+				}
+				safe_strncpy(codeViewData.inputStr,(*--histBuffPos).c_str(),sizeof(codeViewData.inputStr));
+				codeViewData.inputPos = strlen(codeViewData.inputStr);
+				break;
+		case KEY_F(7):	// next command (f1-f4 generate rubbish at my place)
+		case KEY_F(4):	// next command
+				if (histBuffPos == histBuff.end()) break;
+				if (++histBuffPos != histBuff.end()) {
+					safe_strncpy(codeViewData.inputStr,(*histBuffPos).c_str(),sizeof(codeViewData.inputStr));
+				} else {
+					// copy suspInputStr back into inputStr
+					safe_strncpy(codeViewData.inputStr, codeViewData.suspInputStr, sizeof(codeViewData.inputStr));
+				}
+				codeViewData.inputPos = strlen(codeViewData.inputStr);
+				break; 
 		case KEY_F(5):	// Run Program
 				debugging=false;
 				CBreakpoint::ActivateBreakpoints(SegPhys(cs)+reg_eip,true);						
 				ignoreAddressOnce = SegPhys(cs)+reg_eip;
 				DOSBOX_SetNormalLoop();	
 				break;
-		case KEY_F(9):	// Set/Remove TBreakpoint
+		case KEY_F(9):	// Set/Remove Breakpoint
 				{	PhysPt ptr = GetAddress(codeViewData.cursorSeg,codeViewData.cursorOfs);
-					if (CBreakpoint::IsBreakpoint(ptr)) CBreakpoint::DeleteBreakpoint(ptr);
-					else								CBreakpoint::AddBreakpoint(codeViewData.cursorSeg, codeViewData.cursorOfs, false);
+					if (CBreakpoint::IsBreakpoint(ptr)) {
+						CBreakpoint::DeleteBreakpoint(ptr);
+						DEBUG_ShowMsg("DEBUG: Breakpoint deletion success.\n");
+					}
+					else {
+						CBreakpoint::AddBreakpoint(codeViewData.cursorSeg, codeViewData.cursorOfs, false);
+						DEBUG_ShowMsg("DEBUG: Set breakpoint at %04X:%04X\n",codeViewData.cursorSeg,codeViewData.cursorOfs);
+					}
 				}
-						break;
+				break;
 		case KEY_F(10):	// Step over inst
 				if (StepOver()) return 0;
 				else {
@@ -1621,30 +1695,59 @@ Bit32u DEBUG_CheckKeys(void) {
 				CBreakpoint::ignoreOnce = 0;
 				break;
 		case 0x0A: //Parse typed Command
-				codeViewData.inputMode = true;
+				codeViewData.inputStr[MAXCMDLEN] = '\0';
 				if(ParseCommand(codeViewData.inputStr)) {
-					// copy inputStr to prevInputStr so we can restore it if the user hits F3
-					safe_strncpy(codeViewData.prevInputStr, codeViewData.inputStr, sizeof(codeViewData.prevInputStr));
-					// clear input line ready for next command
-					codeViewData.inputStr[0] = 0;
+					char* cmd = ltrim(codeViewData.inputStr);
+					if (histBuff.empty() || *--histBuff.end()!=cmd)
+						histBuff.push_back(cmd);
+					if (histBuff.size() > MAX_HIST_BUFFER) histBuff.pop_front();
+					histBuffPos = histBuff.end();
+					ClearInputLine();
+				} else { 
+					codeViewData.inputPos = strlen(codeViewData.inputStr);
+				} 
+				break;
+		case KEY_BACKSPACE: //backspace (linux)
+		case 0x7f:	// backspace in some terminal emulators (linux)
+		case 0x08:	// delete 
+				if (codeViewData.inputPos == 0) break;
+				codeViewData.inputPos--;
+				// fallthrough
+		case KEY_DC: // delete character 
+				if ((codeViewData.inputPos<0) || (codeViewData.inputPos>=MAXCMDLEN)) break;
+				if (codeViewData.inputStr[codeViewData.inputPos] != 0) {
+						codeViewData.inputStr[MAXCMDLEN] = '\0';
+						for(char* p=&codeViewData.inputStr[codeViewData.inputPos];(*p=*(p+1));p++) {}
+				}
+ 				break;
+		default:
+				if ((key>=32) && (key<127)) {
+					if ((codeViewData.inputPos<0) || (codeViewData.inputPos>=MAXCMDLEN)) break;
+					codeViewData.inputStr[MAXCMDLEN] = '\0';
+					if (codeViewData.inputStr[codeViewData.inputPos] == 0) {
+							codeViewData.inputStr[codeViewData.inputPos++] = char(key);
+							codeViewData.inputStr[codeViewData.inputPos] = '\0';
+					} else if (!codeViewData.ovrMode) {
+						int len = (int) strlen(codeViewData.inputStr);
+						if (len < MAXCMDLEN) { 
+							for(len++;len>codeViewData.inputPos;len--)
+								codeViewData.inputStr[len]=codeViewData.inputStr[len-1];
+							codeViewData.inputStr[codeViewData.inputPos++] = char(key);
+						}
+					} else {
+						codeViewData.inputStr[codeViewData.inputPos++] = char(key);
+					}
+				} else if (key==killchar()) {
+					ClearInputLine();
 				}
 				break;
-		case 0x107:     //backspace (linux)
-		case 0x7f:	//backspace in some terminal emulators (linux)
-		case 0x08:	// delete
-				if (strlen(codeViewData.inputStr)>0) codeViewData.inputStr[strlen(codeViewData.inputStr)-1] = 0;
-				break;
-		default	:	if ((key>=32) && (key<=128) && (strlen(codeViewData.inputStr)<253)) {
-					Bit32u len = strlen(codeViewData.inputStr);
-					codeViewData.inputStr[len]	= char(key);
-					codeViewData.inputStr[len+1] = 0;
-				}
-				break;
-
 		}
-                if (ret<0) return ret;
+		if (ret<0) return ret;
 		if (ret>0) {
-			ret=(*CallBack_Handlers[ret])();
+			if (GCC_UNLIKELY(ret >= CB_MAX)) 
+				ret = 0;
+			else
+				ret = (*CallBack_Handlers[ret])();
 			if (ret) {
 				exitLoop=true;
 				CPU_Cycles=CPU_CycleLeft=0;
@@ -1706,7 +1809,8 @@ static void LogMCBChain(Bit16u mcb_segment) {
 	DOS_MCB mcb(mcb_segment);
 	char filename[9]; // 8 characters plus a terminating NUL
 	const char *psp_seg_note;
-	PhysPt dataAddr = PhysMake(dataSeg,dataOfs);// location being viewed in the "Data Overview"
+	Bit16u DOS_dataOfs = static_cast<Bit16u>(dataOfs); //Realmode addressing only
+	PhysPt dataAddr = PhysMake(dataSeg,DOS_dataOfs);// location being viewed in the "Data Overview"
 
 	// loop forever, breaking out of the loop once we've processed the last MCB
 	while (true) {
@@ -1736,7 +1840,7 @@ static void LogMCBChain(Bit16u mcb_segment) {
 		PhysPt mcbStartAddr = PhysMake(mcb_segment+1,0);
 		PhysPt mcbEndAddr = PhysMake(mcb_segment+1+mcb.GetSize(),0);
 		if (dataAddr >= mcbStartAddr && dataAddr < mcbEndAddr) {
-			LOG(LOG_MISC,LOG_ERROR)("   (data addr %04hX:%04X is %u bytes past this MCB)",dataSeg,dataOfs,dataAddr - mcbStartAddr);
+			LOG(LOG_MISC,LOG_ERROR)("   (data addr %04hX:%04X is %u bytes past this MCB)",dataSeg,DOS_dataOfs,dataAddr - mcbStartAddr);
 		}
 
 		// if we've just processed the last MCB in the chain, break out of the loop
@@ -1772,9 +1876,9 @@ static void LogGDT(void)
 	while (address<max) {
 		desc.Load(address);
 		sprintf(out1,"%04X: b:%08X type: %02X parbg",(i<<3),desc.GetBase(),desc.saved.seg.type);
-		LOG(LOG_MISC,LOG_ERROR)(out1);
+		LOG(LOG_MISC,LOG_ERROR)("%s",out1);
 		sprintf(out1,"      l:%08X dpl : %01X  %1X%1X%1X%1X%1X",desc.GetLimit(),desc.saved.seg.dpl,desc.saved.seg.p,desc.saved.seg.avl,desc.saved.seg.r,desc.saved.seg.big,desc.saved.seg.g);
-		LOG(LOG_MISC,LOG_ERROR)(out1);
+		LOG(LOG_MISC,LOG_ERROR)("%s",out1);
 		address+=8; i++;
 	};
 };
@@ -1792,9 +1896,9 @@ static void LogLDT(void) {
 	while (address<max) {
 		desc.Load(address);
 		sprintf(out1,"%04X: b:%08X type: %02X parbg",(i<<3)|4,desc.GetBase(),desc.saved.seg.type);
-		LOG(LOG_MISC,LOG_ERROR)(out1);
+		LOG(LOG_MISC,LOG_ERROR)("%s",out1);
 		sprintf(out1,"      l:%08X dpl : %01X  %1X%1X%1X%1X%1X",desc.GetLimit(),desc.saved.seg.dpl,desc.saved.seg.p,desc.saved.seg.avl,desc.saved.seg.r,desc.saved.seg.big,desc.saved.seg.g);
-		LOG(LOG_MISC,LOG_ERROR)(out1);
+		LOG(LOG_MISC,LOG_ERROR)("%s",out1);
 		address+=8; i++;
 	};
 };
@@ -1806,7 +1910,7 @@ static void LogIDT(void) {
 	while (address<256*8) {
 		if (cpu.idt.GetDescriptor(address,desc)) {
 			sprintf(out1,"%04X: sel:%04X off:%02X",address/8,desc.GetSelector(),desc.GetOffset());
-			LOG(LOG_MISC,LOG_ERROR)(out1);
+			LOG(LOG_MISC,LOG_ERROR)("%s",out1);
 		}
 		address+=8;
 	};
@@ -1829,7 +1933,7 @@ void LogPages(char* selname) {
 						sprintf(out1,"page %05Xxxx -> %04Xxxx  flags [uw] %x:%x::%x:%x [d=%x|a=%x]",
 							i,entry.block.base,entry.block.us,table.block.us,
 							entry.block.wr,table.block.wr,entry.block.d,entry.block.a);
-						LOG(LOG_MISC,LOG_ERROR)(out1);
+						LOG(LOG_MISC,LOG_ERROR)("%s",out1);
 					}
 				}
 			}
@@ -1842,10 +1946,10 @@ void LogPages(char* selname) {
 				Bitu entry_addr=(table.block.base<<12)+(sel & 0x3ff)*4;
 				entry.load=phys_readd(entry_addr);
 				sprintf(out1,"page %05Xxxx -> %04Xxxx  flags [puw] %x:%x::%x:%x::%x:%x",sel,entry.block.base,entry.block.p,table.block.p,entry.block.us,table.block.us,entry.block.wr,table.block.wr);
-				LOG(LOG_MISC,LOG_ERROR)(out1);
+				LOG(LOG_MISC,LOG_ERROR)("%s",out1);
 			} else {
 				sprintf(out1,"pagetable %03X not present, flags [puw] %x::%x::%x",(sel >> 10),table.block.p,table.block.us,table.block.wr);
-				LOG(LOG_MISC,LOG_ERROR)(out1);
+				LOG(LOG_MISC,LOG_ERROR)("%s",out1);
 			}
 		}
 	}
@@ -1854,24 +1958,24 @@ void LogPages(char* selname) {
 static void LogCPUInfo(void) {
 	char out1[512];
 	sprintf(out1,"cr0:%08X cr2:%08X cr3:%08X  cpl=%x",cpu.cr0,paging.cr2,paging.cr3,cpu.cpl);
-	LOG(LOG_MISC,LOG_ERROR)(out1);
+	LOG(LOG_MISC,LOG_ERROR)("%s",out1);
 	sprintf(out1,"eflags:%08X [vm=%x iopl=%x nt=%x]",reg_flags,GETFLAG(VM)>>17,GETFLAG(IOPL)>>12,GETFLAG(NT)>>14);
-	LOG(LOG_MISC,LOG_ERROR)(out1);
+	LOG(LOG_MISC,LOG_ERROR)("%s",out1);
 	sprintf(out1,"GDT base=%08X limit=%08X",cpu.gdt.GetBase(),cpu.gdt.GetLimit());
-	LOG(LOG_MISC,LOG_ERROR)(out1);
+	LOG(LOG_MISC,LOG_ERROR)("%s",out1);
 	sprintf(out1,"IDT base=%08X limit=%08X",cpu.idt.GetBase(),cpu.idt.GetLimit());
-	LOG(LOG_MISC,LOG_ERROR)(out1);
+	LOG(LOG_MISC,LOG_ERROR)("%s",out1);
 
 	Bitu sel=CPU_STR();
 	Descriptor desc;
 	if (cpu.gdt.GetDescriptor(sel,desc)) {
 		sprintf(out1,"TR selector=%04X, base=%08X limit=%08X*%X",sel,desc.GetBase(),desc.GetLimit(),desc.saved.seg.g?0x4000:1);
-		LOG(LOG_MISC,LOG_ERROR)(out1);
+		LOG(LOG_MISC,LOG_ERROR)("%s",out1);
 	}
 	sel=CPU_SLDT();
 	if (cpu.gdt.GetDescriptor(sel,desc)) {
 		sprintf(out1,"LDT selector=%04X, base=%08X limit=%08X*%X",sel,desc.GetBase(),desc.GetLimit(),desc.saved.seg.g?0x4000:1);
-		LOG(LOG_MISC,LOG_ERROR)(out1);
+		LOG(LOG_MISC,LOG_ERROR)("%s",out1);
 	}
 };
 
@@ -1902,7 +2006,7 @@ static void LogInstruction(Bit16u segValue, Bit32u eipValue,  ofstream& out) {
 		char ibytes[200]="";	char tmpc[200];
 		for (Bitu i=0; i<size; i++) {
 			Bit8u value;
-			if (mem_readb_checked(start+i,&value)) sprintf(tmpc,"?? ",value);
+			if (mem_readb_checked(start+i,&value)) sprintf(tmpc,"%s","?? ");
 			else sprintf(tmpc,"%02X ",value);
 			strcat(ibytes,tmpc);
 		}
@@ -1952,13 +2056,12 @@ public:
 		}
 	   
 		char filename[128];
-		char args[256];
+		char args[256+1];
 	
 		cmd->FindCommand(1,temp_line);
 		safe_strncpy(filename,temp_line.c_str(),128);
 		// Read commandline
 		Bit16u i	=2;
-		bool ok		= false; 
 		args[0]		= 0;
 		for (;cmd->FindCommand(i++,temp_line)==true;) {
 			strncat(args,temp_line.c_str(),256);
@@ -2022,26 +2125,27 @@ void DEBUG_SetupConsole(void) {
 	WIN32_Console();
 	#else
 	tcgetattr(0,&consolesettings);
-	printf("\e[8;50;80t"); //resize terminal
-	fflush(NULL);
+	//curses must be inited first in order to catch the resize (is an event)
+//	printf("\e[8;50;80t"); //resize terminal
+//	fflush(NULL);
 	#endif	
 	memset((void *)&dbg,0,sizeof(dbg));
 	debugging=false;
-	dbg.active_win=3;
-	input_count=0;
+//	dbg.active_win=3;
 	/* Start the Debug Gui */
 	DBGUI_StartUp();
 }
 
-static void DEBUG_ShutDown(Section * /*sec*/) {
+void DEBUG_ShutDown(Section * /*sec*/) {
 	CBreakpoint::DeleteAll();
 	CDebugVar::DeleteAll();
 	curs_set(old_cursor_state);
+	endwin();
 	#ifndef WIN32
 	tcsetattr(0, TCSANOW,&consolesettings);
 //	printf("\e[0m\e[2J"); //Seems to destroy scrolling
-	printf("\ec");
-	fflush(NULL);
+//	printf("\ec"); //Doesn't seem to be needed anymore
+//	fflush(NULL);
 	#endif
 }
 
@@ -2049,11 +2153,11 @@ Bitu debugCallback;
 
 void DEBUG_Init(Section* sec) {
 
-	MSG_Add("DEBUG_CONFIGFILE_HELP","Debugger related options.\n");
+//	MSG_Add("DEBUG_CONFIGFILE_HELP","Debugger related options.\n");
 	DEBUG_DrawScreen();
 	/* Add some keyhandlers */
 	MAPPER_AddHandler(DEBUG_Enable,MK_pause,MMOD2,"debugger","Debugger");
-	/* Clear the TBreakpoint list */
+	/* Reset code overview and input line */
 	memset((void*)&codeViewData,0,sizeof(codeViewData));
 	/* setup debug.com */
 	PROGRAMS_MakeFile("DEBUG.COM",DEBUG_ProgramStart);
@@ -2093,11 +2197,11 @@ CDebugVar* CDebugVar::FindVar(PhysPt pt)
 	return 0;
 };
 
-bool CDebugVar::SaveVars(char* name)
-{
+bool CDebugVar::SaveVars(char* name) {
+	if (varList.size()>65535) return false;
+
 	FILE* f = fopen(name,"wb+");
 	if (!f) return false;
-	if (varList.size()>65535) return false;
 
 	// write number of vars
 	Bit16u num = (Bit16u)varList.size();
@@ -2124,15 +2228,15 @@ bool CDebugVar::LoadVars(char* name)
 
 	// read number of vars
 	Bit16u num;
-	fread(&num,1,sizeof(num),f);
+	if (fread(&num,sizeof(num),1,f) != 1) return false;
 
 	for (Bit16u i=0; i<num; i++) {
 		char name[16];
 		// name
-		fread(name,1,16,f);
+		if (fread(name,16,1,f) != 1) break;
 		// adr
 		PhysPt adr;
-		fread(&adr,1,sizeof(adr),f);
+		if (fread(&adr,sizeof(adr),1,f) != 1) break;
 		// insert
 		InsertVariable(name,adr);
 	};
@@ -2140,7 +2244,7 @@ bool CDebugVar::LoadVars(char* name)
 	return true;
 };
 
-static void SaveMemory(Bitu seg, Bitu ofs1, Bit32u num) {
+static void SaveMemory(Bit16u seg, Bit32u ofs1, Bit32u num) {
 	FILE* f = fopen("MEMDUMP.TXT","wt");
 	if (!f) {
 		DEBUG_ShowMsg("DEBUG: Memory dump failed.\n");
@@ -2154,7 +2258,7 @@ static void SaveMemory(Bitu seg, Bitu ofs1, Bit32u num) {
 		sprintf(buffer,"%04X:%04X   ",seg,ofs1);
 		for (Bit16u x=0; x<16; x++) {
 			Bit8u value;
-			if (mem_readb_checked(GetAddress(seg,ofs1+x),&value)) sprintf(temp,"?? ",value);
+			if (mem_readb_checked(GetAddress(seg,ofs1+x),&value)) sprintf(temp,"%s","?? ");
 			else sprintf(temp,"%02X ",value);
 			strcat(buffer,temp);
 		}
@@ -2167,7 +2271,7 @@ static void SaveMemory(Bitu seg, Bitu ofs1, Bit32u num) {
 		sprintf(buffer,"%04X:%04X   ",seg,ofs1);
 		for (Bit16u x=0; x<num; x++) {
 			Bit8u value;
-			if (mem_readb_checked(GetAddress(seg,ofs1+x),&value)) sprintf(temp,"?? ",value);
+			if (mem_readb_checked(GetAddress(seg,ofs1+x),&value)) sprintf(temp,"%s","?? ");
 			else sprintf(temp,"%02X ",value);
 			strcat(buffer,temp);
 		}
@@ -2177,7 +2281,7 @@ static void SaveMemory(Bitu seg, Bitu ofs1, Bit32u num) {
 	DEBUG_ShowMsg("DEBUG: Memory dump success.\n");
 }
 
-static void SaveMemoryBin(Bitu seg, Bitu ofs1, Bit32u num) {
+static void SaveMemoryBin(Bit16u seg, Bit32u ofs1, Bit32u num) {
 	FILE* f = fopen("MEMDUMP.BIN","wb");
 	if (!f) {
 		DEBUG_ShowMsg("DEBUG: Memory binary dump failed.\n");
@@ -2229,7 +2333,7 @@ static void DrawVariables(void) {
 
 		Bit16u value;
 		if (mem_readw_checked(dv->GetAdr(),&value))
-			snprintf(buffer,DEBUG_VAR_BUF_LEN, "??????", value);
+			snprintf(buffer,DEBUG_VAR_BUF_LEN, "%s", "??????");
 		else
 			snprintf(buffer,DEBUG_VAR_BUF_LEN, "0x%04x", value);
 
@@ -2248,8 +2352,6 @@ static void DrawVariables(void) {
 
 const Bit32u LOGCPUMAX = 20000;
 
-static Bit16u logCpuCS [LOGCPUMAX];
-static Bit32u logCpuEIP[LOGCPUMAX];
 static Bit32u logCount = 0;
 
 struct TLogInst {
@@ -2287,7 +2389,7 @@ void DEBUG_HeavyLogInstruction(void) {
 
 	PhysPt start = GetAddress(SegValue(cs),reg_eip);
 	char dline[200];
-	Bitu size = DasmI386(dline, start, reg_eip, cpu.code.big);
+	DasmI386(dline, start, reg_eip, cpu.code.big);
 	char* res = empty;
 	if (showExtend) {
 		res = AnalyzeInstruction(dline,false);
@@ -2343,7 +2445,7 @@ void DEBUG_HeavyWriteLogInstruction(void) {
 	out << hex << noshowbase << setfill('0') << uppercase;
 	Bit32u startLog = logCount;
 	do {
-		// Write Intructions
+		// Write Instructions
 		TLogInst & inst = logInst[startLog];
 		out << setw(4) << inst.s_cs << ":" << setw(8) << inst.eip << "  " 
 		    << inst.dline << "  " << inst.res << " EAX:" << setw(8)<< inst.eax

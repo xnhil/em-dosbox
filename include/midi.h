@@ -17,25 +17,44 @@
  */
 
 
+#ifndef DOSBOX_MIDI_H
+#define DOSBOX_MIDI_H
 
-#ifndef DOSBOX_MOUSE_H
-#define DOSBOX_MOUSE_H
+#ifndef DOSBOX_PROGRAMS_H
+#include "programs.h"
+#endif
+
+class MidiHandler {
+public:
+	MidiHandler();
+	virtual bool Open(const char * /*conf*/) { return true; };
+	virtual void Close(void) {};
+	virtual void PlayMsg(Bit8u * /*msg*/) {};
+	virtual void PlaySysex(Bit8u * /*sysex*/,Bitu /*len*/) {};
+	virtual const char * GetName(void) { return "none"; };
+	virtual void ListAll(Program * base) {};
+	virtual ~MidiHandler() { };
+	MidiHandler * next;
+};
 
 
-void Mouse_ShowCursor(void);
-void Mouse_HideCursor(void);
+#define SYSEX_SIZE 1024
+struct DB_Midi {
+	Bitu status;
+	Bitu cmd_len;
+	Bitu cmd_pos;
+	Bit8u cmd_buf[8];
+	Bit8u rt_buf[8];
+	struct {
+		Bit8u buf[SYSEX_SIZE];
+		Bitu used;
+		Bitu delay;
+		Bit32u start;
+	} sysex;
+	bool available;
+	MidiHandler * handler;
+};
 
-bool Mouse_SetPS2State(bool use);
-
-void Mouse_ChangePS2Callback(Bit16u pseg, Bit16u pofs);
-
-
-void Mouse_CursorMoved(float xrel,float yrel,float x,float y,bool emulate);
-void Mouse_CursorSet(float x,float y);
-void Mouse_ButtonPressed(Bit8u button);
-void Mouse_ButtonReleased(Bit8u button);
-
-void Mouse_AutoLock(bool enable);
-void Mouse_NewVideoMode(void);
+extern DB_Midi midi;
 
 #endif

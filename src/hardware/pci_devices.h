@@ -16,26 +16,3 @@
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-
-
-#ifndef DOSBOX_MOUSE_H
-#define DOSBOX_MOUSE_H
-
-
-void Mouse_ShowCursor(void);
-void Mouse_HideCursor(void);
-
-bool Mouse_SetPS2State(bool use);
-
-void Mouse_ChangePS2Callback(Bit16u pseg, Bit16u pofs);
-
-
-void Mouse_CursorMoved(float xrel,float yrel,float x,float y,bool emulate);
-void Mouse_CursorSet(float x,float y);
-void Mouse_ButtonPressed(Bit8u button);
-void Mouse_ButtonReleased(Bit8u button);
-
-void Mouse_AutoLock(bool enable);
-void Mouse_NewVideoMode(void);
-
-#endif
