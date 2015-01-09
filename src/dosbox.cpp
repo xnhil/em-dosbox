@@ -558,13 +558,18 @@ void DOSBOX_Init(void) {
 
 	const char *blocksizes[] = {
 		 "1024", "2048", "4096", "8192", "512", "256", 0};
-	Pint = secprop->Add_int("blocksize",Property::Changeable::OnlyAtStart,1024);
+	Pint = secprop->Add_int("blocksize",Property::Changeable::OnlyAtStart,
+#if defined(EMSCRIPTEN) && SDL_VERSION_ATLEAST(2,0,0)
+		2048
+#else
+		1024
+#endif
+	);
 	Pint->Set_values(blocksizes);
 	Pint->Set_help("Mixer block size, larger blocks might help sound stuttering but sound will also be more lagged.");
 
 	Pint = secprop->Add_int("prebuffer",Property::Changeable::OnlyAtStart,
 #ifdef EMSCRIPTEN
-		// Firefox could probably use 20, but Chrome needs more
 		40
 #else
 		20

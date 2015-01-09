@@ -50,11 +50,23 @@
 #include "programs.h"
 #include "midi.h"
 
-#define MIXER_SSIZE 4
 #define MIXER_SHIFT 14
 #define MIXER_REMAIN ((1<<MIXER_SHIFT)-1)
 #define MIXER_VOLSHIFT 13
 
+#if defined(EMSCRIPTEN) && SDL_VERSION_ATLEAST(2,0,0)
+typedef float mixer_t;
+static INLINE float MIXER_CLIP(Bits SAMP) {
+	Bit16s samp16s;
+	if (SAMP < MAX_AUDIO) {
+		if (SAMP > MIN_AUDIO)
+			samp16s = SAMP;
+		else samp16s = MIN_AUDIO;
+	} else samp16s = MAX_AUDIO;
+	return samp16s / 32768.0f;
+}
+#else
+typedef Bit16s mixer_t;
 static INLINE Bit16s MIXER_CLIP(Bits SAMP) {
 	if (SAMP < MAX_AUDIO) {
 		if (SAMP > MIN_AUDIO)
@@ -62,6 +74,7 @@ static INLINE Bit16s MIXER_CLIP(Bits SAMP) {
 		else return MIN_AUDIO;
 	} else return MAX_AUDIO;
 }
+#endif
 
 static struct {
 	Bit32s work[MIXER_BUFSIZE][2];
@@ -416,8 +429,8 @@ static void MIXER_CallBack(void * userdata, Uint8 *stream, int len) {
 #if SDL_VERSION_ATLEAST(2,0,0)
 	memset(stream, 0, len);
 #endif
-	Bitu need=(Bitu)len/MIXER_SSIZE;
-	Bit16s * output=(Bit16s *)stream;
+	Bitu need=(Bitu)len/(sizeof(mixer_t)*2);
+	mixer_t *output=(mixer_t *)stream;
 	Bitu reduce;
 	Bitu pos, index, index_add;
 	Bits sample;
@@ -631,7 +644,11 @@ void MIXER_Init(Section* sec) {
 	SDL_AudioSpec obtained;
 
 	spec.freq=mixer.freq;
+#if defined(EMSCRIPTEN) && SDL_VERSION_ATLEAST(2,0,0)
+	spec.format=AUDIO_F32;
+#else
 	spec.format=AUDIO_S16SYS;
+#endif
 	spec.channels=2;
 	spec.callback=MIXER_CallBack;
 	spec.userdata=NULL;
