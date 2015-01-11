@@ -31,11 +31,13 @@ Makefile
 *.o
 *.a
 *.map
-src/dosbox
-src/dosbox.exe
-src/dosbox.js
-src/dosbox.html
+/src/dosbox
+/src/dosbox.exe
+/src/dosbox.js
+/src/dosbox.html
+/src/dosbox.html.mem
 
 # Miscellaneous files
 
 *~
+/include/version.h
