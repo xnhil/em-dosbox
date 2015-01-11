@@ -35,6 +35,7 @@
 #include "cross.h"
 #include "SDL.h"
 
+#include "version.h"
 #include "dosbox.h"
 #include "video.h"
 #include "mouse.h"
@@ -2695,7 +2696,7 @@ int main(int argc, char* argv[]) {
 #endif
 
 	/* Display Welcometext in the console */
-	LOG_MSG("DOSBox version %s",VERSION);
+	LOG_MSG("DOSBox version %s", VERSION_TEXT);
 	LOG_MSG("Copyright 2002-2013 DOSBox Team, published under GNU GPL.");
 	LOG_MSG("---");
 

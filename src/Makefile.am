@@ -20,3 +20,8 @@ EXTRA_DIST = winres.rc dosbox.ico
 if EMSCRIPTEN_BUILD
 dosbox_LDFLAGS=-s TOTAL_MEMORY=67108864 --pre-js pre.js
 endif
+
+# https://stackoverflow.com/questions/1779984/header-dependency-in-automake
+BUILT_SOURCES=version.stamp
+version.stamp:
+	python version.py ../include/version.h .. $(CXX)
