@@ -21,6 +21,9 @@
 #include <string.h>
 #include <algorithm> //std::copy
 #include <iterator>  //std::front_inserter
+#ifdef EMSCRIPTEN
+#include <emscripten.h>
+#endif
 #include "shell.h"
 #include "regs.h"
 #include "callback.h"
@@ -40,6 +43,13 @@ static void outc(Bit8u c) {
 }
 
 void DOS_Shell::InputCommand(char * line) {
+#ifdef EMSCRIPTEN
+	if (!strcmp(Files[input_handle]->name, "CON")) {
+		// This can be called during startup, before main loop being used.
+		LOG_MSG("Emulation ended because interactive shell is not supported.");
+		em_exit(1);
+	}
+#else
 	Bitu size=CMD_MAXLINE-2; //lastcharacter+0
 	Bit8u c;Bit16u n=1;
 	Bitu str_len=0;Bitu str_index=0;
@@ -369,6 +379,7 @@ void DOS_Shell::InputCommand(char * line) {
 	// add command line to history
 	l_history.push_front(line); it_history = l_history.begin();
 	if (l_completion.size()) l_completion.clear();
+#endif // !EMSCRIPTEN
 }
 
 std::string full_arguments = "";
