@@ -25,6 +25,10 @@
 
 void E_Exit(const char * message,...) GCC_ATTRIBUTE( __format__(__printf__, 1, 2));
 
+#ifdef EMSCRIPTEN
+void em_exit(int exitarg);
+#endif
+
 void MSG_Add(const char*,const char*); //add messages to the internal langaugefile
 const char* MSG_Get(char const *);     //get messages from the internal langaugafile
 

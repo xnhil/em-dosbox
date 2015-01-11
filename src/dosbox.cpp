@@ -302,8 +302,36 @@ void DOSBOX_SetNormalLoop() {
 }
 
 #ifdef EMSCRIPTEN
-void em_main_loop(void) {
-	(*loop)();
+/* Many DOS games display a text mode screen after they exit.
+ * This tries to ensure that screen will be visible. In other situations
+ * this is used to display the screen to help diagnosis.
+ */
+static int em_exitarg;
+static void em_exit_loop(void) {
+	static int counter = 0;
+	if (++counter < 500) {
+		PIC_RunQueue();
+		TIMER_AddTick();
+	} else {
+		emscripten_cancel_main_loop();
+		emscripten_force_exit(em_exitarg);
+	}
+}
+
+void em_exit(int exitarg) {
+	em_exitarg = exitarg;
+	emscripten_cancel_main_loop();
+	emscripten_set_main_loop(em_exit_loop, 100, 1);
+}
+
+static void em_main_loop(void) {
+	if ((*loop)()) {
+		/* Here, the function which called emscripten_set_main_loop() should
+		 * return, but that call stack is gone, so emulation ends.
+		 */
+		LOG_MSG("Emulation ended because program exited.");
+		em_exit(0);
+	}
 }
 #endif
 
@@ -320,10 +348,22 @@ void DOSBOX_RunMachine(void){
 		 */
 		emscripten_set_main_loop(em_main_loop, 100, 1);
 	}
+	Uint32 ticksStart = GetTicks();
 #endif
 	Bitu ret;
 	do {
 		ret=(*loop)();
+#ifdef EMSCRIPTEN
+		/* These should be very short operations, like interrupts.
+		 * Anything taking a long time will probably run indefinitely,
+		 * making DOSBox appear to hang.
+		 */
+		if (GetTicks() - ticksStart > 1000) {
+			LOG_MSG("Emulation aborted due to nested emulation timeout.");
+			em_exit(1);
+			break;
+		}
+#endif
 	} while (!ret);
 }
 
