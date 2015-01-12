@@ -329,7 +329,7 @@ static void em_exit_loop(void) {
 void em_exit(int exitarg) {
 	em_exitarg = exitarg;
 	emscripten_cancel_main_loop();
-	emscripten_set_main_loop(em_exit_loop, 100, 1);
+	emscripten_set_main_loop(em_exit_loop, 0, 1);
 }
 
 static void em_main_loop(void) {
@@ -354,7 +354,7 @@ void DOSBOX_RunMachine(void){
 		 * main loop runs. So, any time spent in the main loop adds to the
 		 * interval between main loop invocations.
 		 */
-		emscripten_set_main_loop(em_main_loop, 100, 1);
+		emscripten_set_main_loop(em_main_loop, 0, 1);
 	}
 	Uint32 ticksStart = GetTicks();
 #endif
