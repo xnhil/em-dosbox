@@ -67,8 +67,8 @@ dnl sdl-config is found. SDL is included with Emscripten and its
 dnl sdl-config does nothing, so just assume SDL is present then.
 AC_ARG_WITH(sdl2, [AC_HELP_STRING([--with-sdl2=@<:@no/yes/path@:>@],
                   [Build using SDL 2.0 instead of SDL 1.2.
-                   If using Emscripten, provide path to SDL-emscripten.])]
-                  [with_sdl2=yes], )
+                   If using Emscripten, provide path to SDL-emscripten.])],
+                  [], [with_sdl2=no])
 AS_IF([test "x$enable_emscripten" != "xyes"],[
 SDL_VERSION=1.2.0
 AM_PATH_SDL(:,
@@ -583,7 +583,6 @@ AS_IF([test "x$enable_emscripten" = "xyes"],[
   # Using SDL2, $with_sdl should be path to it.
   LIBS="$LIBS -L$with_sdl2/build/.libs/ -lSDL2"
   CXXFLAGS="$CXXFLAGS -Wno-warn-absolute-paths -I$with_sdl2/include"
-  with_sdl2=yes
   ])
 ])
 
