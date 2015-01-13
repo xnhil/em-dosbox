@@ -37,7 +37,8 @@
 #define CPU_AUTODETERMINE_SHIFT		0x02
 #define CPU_AUTODETERMINE_MASK		0x03
 
-#define CPU_CYCLES_LOWER_LIMIT		100
+// This is only for auto adjustment. Low values can cause hangs.
+#define CPU_CYCLES_LOWER_LIMIT		1000
 
 
 #define CPU_ARCHTYPE_MIXED			0xff
