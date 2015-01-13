@@ -17,12 +17,15 @@ libextfun_a_CPPFLAGS = $(AM_CPPFLAGS) -DGET_X86_FUNCTIONS
 
 # This actually generates preprocessed files,
 # only using the library for dependencies.
+# Emscripten -s options in CXXFLAGS cause problems and must be excluded.
+CXXPP = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
+        $(AM_CPPFLAGS) $(CPPFLAGS)
 core_simple_fun.ii: libextfun.a
-	$(CXXCOMPILE) -D GET_X86_FUNCTIONS -E core_simple.cpp > $@
+	$(CXXPP) -DGET_X86_FUNCTIONS -E core_simple.cpp > $@
 core_normal_fun.ii: libextfun.a
-	$(CXXCOMPILE) -D GET_X86_FUNCTIONS -E core_normal.cpp > $@
+	$(CXXPP) -DGET_X86_FUNCTIONS -E core_normal.cpp > $@
 core_prefetch_fun.ii: libextfun.a
-	$(CXXCOMPILE) -D GET_X86_FUNCTIONS -E core_prefetch.cpp > $@
+	$(CXXPP) -DGET_X86_FUNCTIONS -E core_prefetch.cpp > $@
 
 # Convert preprocessed code to files that can be included to
 # build actual CPU core

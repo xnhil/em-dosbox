@@ -65,9 +65,9 @@ dnl Check for SDL
 dnl When cross-compiling, the SDL prefix needs to be set, so the right
 dnl sdl-config is found. SDL is included with Emscripten and its
 dnl sdl-config does nothing, so just assume SDL is present then.
-AC_ARG_WITH(sdl2, [AC_HELP_STRING([--with-sdl2=@<:@no/yes/path@:>@],
-                  [Build using SDL 2.0 instead of SDL 1.2.
-                   If using Emscripten, provide path to SDL-emscripten.])],
+AC_ARG_WITH(sdl2, [AC_HELP_STRING([--with-sdl2@<:@=no/PATH@:>@],
+                  [Build using SDL 2.0 instead of SDL 1.2. If using Emscripten,
+                   you can provide a path to SDL-emscripten.])],
                   [], [with_sdl2=no])
 AS_IF([test "x$enable_emscripten" != "xyes"],[
 SDL_VERSION=1.2.0
@@ -579,12 +579,15 @@ esac
 # This is at the bottom because -lSDL2 breaks compilation of test files
 # above with the host C compiler.
 AS_IF([test "x$enable_emscripten" = "xyes"],[
-  AS_IF([test x$with_sdl2 != "xno"],[
-  # Using SDL2, $with_sdl should be path to it.
-  LIBS="$LIBS -L$with_sdl2/build/.libs/ -lSDL2"
-  CXXFLAGS="$CXXFLAGS -Wno-warn-absolute-paths -I$with_sdl2/include"
+  AS_IF([test "x$with_sdl2" != "xno"],[
+    AS_IF([test "x$with_sdl2" = "xyes"],
+      [CXXFLAGS="$CXXFLAGS -s USE_SDL=2"],
+      [LIBS="$LIBS -L$with_sdl2/build/.libs/ -lSDL2"
+       CXXFLAGS="$CXXFLAGS -Wno-warn-absolute-paths -I$with_sdl2/include"
+    ])
   ])
 ])
+
 
 AC_CONFIG_FILES([ 
 Makefile
