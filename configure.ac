@@ -22,8 +22,7 @@ AS_IF([test "x$enable_emscripten" = "xyes"],
       [host_alias=none
        : ${CXXFLAGS="-O3"}
        : ${CFLAGS="-O3"}
-       ac_cv_exeext=.html
-       enable_funarray=yes])
+       ac_cv_exeext=.html])
 
 dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
@@ -47,8 +46,13 @@ AM_CONDITIONAL([EMSCRIPTEN_BUILD], [test "x$enable_emscripten" = "xyes"])
 dnl Function array core
 AC_ARG_ENABLE(
   [funarray],
-  [AC_HELP_STRING([--enable-funarray=@<:@no/yes@:>@],
-                  [use array of function pointers in CPU core])])
+  [AC_HELP_STRING([--enable-funarray@<:@=no/yes@:>@],
+                  [Use array of function pointers in CPU core.
+                   Defaults to yes with Emscripten and no otherwise.])],
+  [],
+  [AS_IF([test "x$enable_emscripten" = "xyes"],
+         [enable_funarray=yes],
+         [enable_funarray=no])])
 AM_CONDITIONAL([FUNARRAY_CORE], [test "x$enable_funarray" = "xyes"])
 AS_IF([test "x$enable_funarray" = "xyes"],
       [AC_DEFINE(FUNARRAY_CORE, 1, [use array of function pointers in core])])
