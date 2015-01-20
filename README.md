@@ -69,21 +69,60 @@ fetch SDL 2 from Emscripten Ports and build it. If you want to use a different
 copy of SDL 2, specify a path as in
 `./configure --with-sdl2=/path/to/SDL-emscripten`.
 
+If the Emscripten
+[memory initialization file](https://kripken.github.io/emscripten-site/docs/optimizing/Optimizing-Code.html#memory-initialization)
+is enabled, `dosbox.html.mem` needs to be in the same folder as `dosbox.js`.
+The memory initialization file is large but it compresses well. If served in
+compressed format, it should save bandwidth and speed up startup.
+
 Packaging DOS programs
 ----------------------
 
-Web pages for running DOS programs can be created using `src/packager.py`. If
-you have an executable which needs no other files such as `Gwbasic.exe`, you
-can package it via `./packager.py gwbasic Gwbasic.exe`. That will create
-`gwbasic.html` and `gwbasic.data`. Placing those in the same directory as
-`dosbox.js` and viewing `gwbasic.html` will run the program. If you need to
-package multiple files, place them in a directory, and package that directory,
-specifying which executable to run. For examle, if Major Stryker is in
-subdirectory `major_stryker`, package it using `./packager.py stryker
-major_stryker STRYKER.EXE`. Again, place `stryker.html` and `stryker.data` in
-the same directory as `dosbox.js` and view `stryker.html` to run the game.
-Remember that the same origin policy prevents access to data files in some
-browsers when using file:// URLs.
+Web pages for running DOS programs can be created using the `src/packager.py`
+Python script. If you have a single DOS executable such as `Gwbasic.exe`, place
+it in the same `src` directory as `packager.py` and package it using:
+
+```./packager.py gwbasic Gwbasic.exe```
+
+This creates `gwbasic.html` and `gwbasic.data`. Placing those in the same
+directory as `dosbox.js` and viewing `gwbasic.html` will run the program in a
+web browser:
+
+Some browsers have a same origin policy that prevents access to the required
+data files while using `file://` URLs. To get around this you can use Python's
+built in Really Simple HTTP Server and point the browser to
+[http://localhost:8000](http://localhost:8000).
+
+```python -m SimpleHTTPServer 8000```
+
+If you need to package a collection of DOS files. Place all the files in a
+single directory and package that directory with the executable specified. For
+example, if Major Stryker's files are in the subdirectory `src/major_stryker`
+and it's launched using `STRYKER.EXE` you would package it using:
+
+```./packager.py stryker major_stryker STRYKER.EXE```
+
+Again, place the created `stryker.html` and `stryker.data` files in the same
+directory as `dosbox.js` and view `stryker.html` to run the game in browser.
+
+You can also include a [DOSBox
+configuration](http://www.dosbox.com/wiki/Dosbox.conf) file that will be
+acknowledged by the emulator to modify any speed, audio or graphic settings.
+Simply include a `dosbox.conf` text file in the package directory before you
+run `./packager.py`.
+
+To attempt to run Major Stryker in CGA graphics mode, you would create the
+configuration file `/src/major_stryker/dosbox.conf` and include this body of
+text:
+
+```
+[dosbox]
+machine=cga
+```
+
+Then package it using:
+
+```./packager.py stryker-cga major_stryker STRYKER.EXE```
 
 Credits
 -------
