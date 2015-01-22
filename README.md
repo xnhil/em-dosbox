@@ -17,12 +17,19 @@ for more information.
 Status
 ------
 
-Currently, DOSBox compiles and runs various real-mode games successfully.
-DOSBox has not been fully re-structured for running in a web browser via the
-Emscripten main loop. Some programs can cause DOSBox to run a loop without
-returning control to the browser, causing DOSBox to appear to hang.
-The interactive DOS prompt cannot be used and leads to a
-hang. DOSBox can only run programs via command line arguments.
+Em-DOSBox runs many games successfully in web browsers. DOSBox has not been
+fully re-structured for running in a web browser via the Emscripten main loop.
+Some programs can cause DOSBox to run in a loop without returning control
+to the browser. This would cause DOSBox and the browser to appear to hang.
+Such situations should be detected now, and emulation should abort instead.
+
+DOSBox can now take advantage of emterpreter sync support in Emscripten to
+greatly reduce the number of situations which cause this problem. To enable it,
+Use an Emscripten version after 1.29.4 and give the `--enable-sync` argument to
+`./configure`. This will slow down DOSBox, but the impact should be minimal
+because emterpreter is only used for a few functions. With it, interactive
+shell, batch files, running programs from other programs and console input
+should all work.
 
 Other issues
 ------------
@@ -68,6 +75,11 @@ give the `--with-sdl2` option to `./configure`. Emscripten will automatically
 fetch SDL 2 from Emscripten Ports and build it. If you want to use a different
 copy of SDL 2, specify a path as in
 `./configure --with-sdl2=/path/to/SDL-emscripten`.
+
+If you want to use emterpreter sync support, use a version of Emscripten
+after 1.29.4, and give the `--enable-sync` option to `./configure`. This is
+required if you want to interactively use the DOS shell, run batch files or
+run programs from other programs.
 
 If the Emscripten
 [memory initialization file](https://kripken.github.io/emscripten-site/docs/optimizing/Optimizing-Code.html#memory-initialization)
@@ -135,4 +147,6 @@ to compile with Emscripten, but didn't get it to work.
 [Boris Gjenero](https://github.com/dreamlayers)
 started with that and got it to work. Then, Boris re-implemented
 Ismail's changes a cleaner way, fixed issues and improved performance to make
-many games usable in web browsers.
+many games usable in web browsers. Meanwhile,
+[Alon Zakai](https://github.com/kripken/) quickly fixed Emscripten bugs which
+were encountered and added helpful Emscripten features.

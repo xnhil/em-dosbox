@@ -579,10 +579,18 @@ esac
        AC_SUBST(WINDRES)
 
 
-# SDL configuration for Emscripten
-# This is at the bottom because -lSDL2 breaks compilation of test files
-# above with the host C compiler.
+AH_TEMPLATE([EMTERPRETER_SYNC],[Compile for use with Emscripten emterpreter sync.])
+AC_ARG_ENABLE(
+  [sync],
+  [AC_HELP_STRING([--enable-sync@<:@=no/yes@:>@],
+    [Use Emscripten emterpreter sync to enable more functionality.])],
+  [], [enable_sync=no])
+AM_CONDITIONAL([EMTERPRETER], [test "x$enable_sync" != "xno"])
+
+# Use of Emscripten-specific compiler flags breaks tests compiled with the
+# host compiler, so those flags are set at the end.
 AS_IF([test "x$enable_emscripten" = "xyes"],[
+  AS_IF([test "x$enable_sync" != "xno"], [AC_DEFINE([EMTERPRETER_SYNC],[1])])
   AS_IF([test "x$with_sdl2" != "xno"],[
     AS_IF([test "x$with_sdl2" = "xyes"],
       [CXXFLAGS="$CXXFLAGS -s USE_SDL=2"],

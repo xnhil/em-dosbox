@@ -21,9 +21,6 @@
 #include <string.h>
 #include <algorithm> //std::copy
 #include <iterator>  //std::front_inserter
-#ifdef EMSCRIPTEN
-#include <emscripten.h>
-#endif
 #include "shell.h"
 #include "regs.h"
 #include "callback.h"
@@ -43,7 +40,7 @@ static void outc(Bit8u c) {
 }
 
 void DOS_Shell::InputCommand(char * line) {
-#ifdef EMSCRIPTEN
+#if defined(EMSCRIPTEN) && !defined(EMTERPRETER_SYNC)
 	if (!strcmp(Files[input_handle]->name, "CON")) {
 		// This can be called during startup, before main loop being used.
 		LOG_MSG("Emulation ended because interactive shell is not supported.");

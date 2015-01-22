@@ -36,6 +36,8 @@ Makefile
 /src/dosbox.js
 /src/dosbox.html
 /src/dosbox.html.mem
+/src/dosbox.js.orig.js
+/src/dosbox.js.tmp.js
 
 # Miscellaneous files
 
