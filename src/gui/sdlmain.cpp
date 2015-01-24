@@ -382,7 +382,15 @@ static void PauseDOSBox(bool pressed) {
 				break;
 			}
 #if defined (MACOSX)
-			if (event.key.keysym.sym == SDLK_q && (event.key.keysym.mod == KMOD_RMETA || event.key.keysym.mod == KMOD_LMETA) ) {
+			if (event.key.keysym.sym == SDLK_q &&
+#if SDL_VERSION_ATLEAST(2,0,0)
+			    (event.key.keysym.mod == KMOD_RGUI ||
+			     event.key.keysym.mod == KMOD_LGUI)
+#else
+			    (event.key.keysym.mod == KMOD_RMETA ||
+			     event.key.keysym.mod == KMOD_LMETA)
+#endif
+			   ) {
 				/* On macs, all aps exit when pressing cmd-q */
 				KillSwitch(true);
 				break;
@@ -2285,7 +2293,15 @@ void GFX_Events() {
 		case SDL_KEYDOWN:
 		case SDL_KEYUP:
 			/* On macs CMD-Q is the default key to close an application */
-			if (event.key.keysym.sym == SDLK_q && (event.key.keysym.mod == KMOD_RMETA || event.key.keysym.mod == KMOD_LMETA) ) {
+			if (event.key.keysym.sym == SDLK_q &&
+#if SDL_VERSION_ATLEAST(2,0,0)
+			    (event.key.keysym.mod == KMOD_RGUI ||
+			     event.key.keysym.mod == KMOD_LGUI)
+#else
+			    (event.key.keysym.mod == KMOD_RMETA ||
+			     event.key.keysym.mod == KMOD_LMETA)
+#endif
+			    ) {
 				KillSwitch(true);
 				break;
 			} 
