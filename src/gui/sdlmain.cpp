@@ -1804,7 +1804,7 @@ static void GUI_StartUp(Section * sec) {
 			sdl.desktop.want_type=SCREEN_SURFACE;
 		}
 	}
-	if (sdl.desktop.want_type=SCREEN_OPENGL) {
+	if (sdl.desktop.want_type==SCREEN_OPENGL) {
 #else	// Same story but for SDL 1.2
 	sdl.surface=SDL_SetVideoMode_Wrap(640,400,0,SDL_OPENGL);
 	if (sdl.surface == NULL) {
