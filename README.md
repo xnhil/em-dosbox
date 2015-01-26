@@ -60,6 +60,8 @@ instead.
 a hang.
 * Firefox may use huge amounts of memory when starting asm.js builds which have
 not been minified.
+* The FPU code uses doubles and does not provide full 80 bit precision.
+DOSBox can only give full precision when running on an x86 CPU.
 
 Compiling
 ---------
