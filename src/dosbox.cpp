@@ -46,6 +46,10 @@
 #include "render.h"
 #include "pci_bus.h"
 
+#if !SDL_VERSION_ATLEAST(2,0,0)
+#define SDL_TICKS_PASSED(A, B)  ((Sint32)((B) - (A)) <= 0)
+#endif
+
 Config * control;
 MachineType machine;
 SVGACards svgaCard;
@@ -150,23 +154,27 @@ static Bitu Normal_Loop(void) {
 	 * sound isn't interrupted, and the script does not appear to hang.
 	 */
 	static Bitu last_sleep = 0;
-	if (ticksEntry - last_sleep > 10) {
+	static Bitu last_loop = 0;
+	if (SDL_TICKS_PASSED(ticksEntry, last_sleep + 10)) {
 		if (nosleep_lock == 0) {
 			last_sleep = ticksEntry;
 			emscripten_sleep(1);
 			ticksEntry = GetTicks();
-		} else if (ticksEntry - last_sleep > 1000) {
+		} else if (SDL_TICKS_PASSED(ticksEntry, last_sleep + 2000) &&
+		           !SDL_TICKS_PASSED(ticksEntry, last_loop + 200)) {
 			/* Emterpreter makes code much slower, so the CPU interpreter does
 			 * not use it. That means it must not be interrupted using
 			 * emscripten_sleep(). Normally, CPU interpreter recursion should
 			 * only involve brief CPU exceptions, so this should not be
 			 * triggered. Sometimes DOSBox fails to detect return from
-			 * exception.
+			 * exception. Timeout must not be triggered when the browser is
+			 * running slow overall or the page is in the background.
 			 */
 			LOG_MSG("Emulation aborted due to nested emulation timeout.");
 			em_exit(1);
 		}
 	}
+	last_loop = ticksEntry;
 #endif
 #endif
 	while (1) {
