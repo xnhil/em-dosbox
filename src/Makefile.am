@@ -24,6 +24,10 @@ CLEANFILES=dosbox.js dosbox.html.mem dosbox.js.orig.js dosbox.js.tmp.js
 if EMTERPRETER
 dosbox_LDFLAGS+=-s EMTERPRETIFY=1 -s EMTERPRETIFY_ASYNC=1 -s EMTERPRETIFY_WHITELIST=@emterpretify.txt
 EXTRA_dosbox_DEPENDENCIES+=emterpretify.txt
+else
+# Memory init file is huge and it doesn't save bandwith even if using gzip.
+# It is only required when using emterpreter.
+dosbox_LDFLAGS+=--memory-init-file 0
 endif
 endif
 
