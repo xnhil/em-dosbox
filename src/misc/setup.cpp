@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2002-2013  The DOSBox Team
+ *  Copyright (C) 2002-2015  The DOSBox Team
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -245,7 +245,9 @@ char const* Property::Get_help() {
 
 
 bool Prop_int::CheckValue(Value const& in, bool warn) {
-	if(suggested_values.empty() && Property::CheckValue(in,warn)) return true;
+//	if(!suggested_values.empty() && Property::CheckValue(in,warn)) return true;
+	if(!suggested_values.empty()) return Property::CheckValue(in,warn);
+
 	//No >= and <= in Value type and == is ambigious
 	int mi = min;
 	int ma = max;
@@ -409,7 +411,7 @@ bool Prop_multival::SetValue(std::string const& input) {
 		} else if(local.size()) { //last argument
 			in = local;
 			local = "";
-		}
+		} 
 		//Test Value. If it fails set default
 		Value valtest (in,p->Get_type());
 		if(!p->CheckValue(valtest,true)) {

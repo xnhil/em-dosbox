@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2002-2013  The DOSBox Team
+ *  Copyright (C) 2002-2015  The DOSBox Team
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -225,6 +225,10 @@ bool DOS_ChildPSP(Bit16u segment, Bit16u size) {
 	psp.SetFCB2(RealMake(parent_psp_seg,0x6c));
 	psp.SetEnvironment(psp_parent.GetEnvironment());
 	psp.SetSize(size);
+	// push registers in case child PSP is terminated
+	SaveRegisters();
+	psp.SetStack(RealMakeSeg(ss,reg_sp));
+	reg_sp+=18;
 	return true;
 }
 
