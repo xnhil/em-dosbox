@@ -31,6 +31,9 @@
 #include <signal.h>
 #include <process.h>
 #endif
+#ifdef EMSCRIPTEN
+#include <html5.h>
+#endif
 
 #include "cross.h"
 #include "SDL.h"
@@ -1127,8 +1130,22 @@ dosurface:
 	return retFlags;
 }
 
-
+#ifdef EMSCRIPTEN
 void GFX_CaptureMouse(void) {
+	if (sdl.mouse.locked) {
+		emscripten_exit_pointerlock();
+	} else {
+		//This only raises a request. A callback will notify when pointer
+		// lock starts. The user may need to confirm a browser dialog.
+		emscripten_request_pointerlock(NULL, true);
+	}
+}
+
+static void doGFX_CaptureMouse(void)
+#else
+void GFX_CaptureMouse(void)
+#endif
+{
 	sdl.mouse.locked=!sdl.mouse.locked;
 	if (sdl.mouse.locked) {
 #if SDL_VERSION_ATLEAST(2,0,0)
@@ -1174,6 +1191,20 @@ static void CaptureMouse(bool pressed) {
 		return;
 	GFX_CaptureMouse();
 }
+
+#ifdef EMSCRIPTEN
+EM_BOOL em_pointerlock_callback(int eventType,
+                          const EmscriptenPointerlockChangeEvent *keyEvent,
+                          void *userData) {
+	if (eventType == EMSCRIPTEN_EVENT_POINTERLOCKCHANGE) {
+		if ((!keyEvent->isActive && sdl.mouse.locked) ||
+			(keyEvent->isActive && !sdl.mouse.locked)) {
+			doGFX_CaptureMouse();
+		}
+	}
+	return false;
+}
+#endif
 
 #if defined (WIN32)
 STICKYKEYS stick_keys = {sizeof(STICKYKEYS), 0};
@@ -2726,6 +2757,11 @@ int main(int argc, char* argv[]) {
         if (pib->pib_ultype == 2) pib->pib_ultype = 3;
         setbuf(stdout, NULL);
         setbuf(stderr, NULL);
+#endif
+
+#ifdef EMSCRIPTEN
+	emscripten_set_pointerlockchange_callback(NULL, NULL, true,
+	                                          em_pointerlock_callback);
 #endif
 
 	/* Display Welcometext in the console */
