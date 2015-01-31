@@ -1131,13 +1131,20 @@ dosurface:
 }
 
 #ifdef EMSCRIPTEN
+static bool use_capture_callback = false;
+static void doGFX_CaptureMouse(void);
+
 void GFX_CaptureMouse(void) {
-	if (sdl.mouse.locked) {
-		emscripten_exit_pointerlock();
+	if (use_capture_callback) {
+		if (sdl.mouse.locked) {
+			emscripten_exit_pointerlock();
+		} else {
+			//This only raises a request. A callback will notify when pointer
+			// lock starts. The user may need to confirm a browser dialog.
+			emscripten_request_pointerlock(NULL, true);
+		}
 	} else {
-		//This only raises a request. A callback will notify when pointer
-		// lock starts. The user may need to confirm a browser dialog.
-		emscripten_request_pointerlock(NULL, true);
+		doGFX_CaptureMouse();
 	}
 }
 
@@ -2760,8 +2767,11 @@ int main(int argc, char* argv[]) {
 #endif
 
 #ifdef EMSCRIPTEN
-	emscripten_set_pointerlockchange_callback(NULL, NULL, true,
-	                                          em_pointerlock_callback);
+	if (emscripten_set_pointerlockchange_callback(NULL, NULL, true,
+	                                              em_pointerlock_callback)
+	    == EMSCRIPTEN_RESULT_SUCCESS) {
+		use_capture_callback = true;
+	}
 #endif
 
 	/* Display Welcometext in the console */
