@@ -34,20 +34,19 @@ should all work.
 Other issues
 ------------
 
+* Compiling in Windows is not supported. The build process requires a
+  Unix-like environment due to use of GNU Autotools. See Emscripten
+  [issue 2208](https://github.com/kripken/emscripten/issues/2208).
 * Emscripten issues
 [1975](https://github.com/kripken/emscripten/issues/1975) and
 [1992](https://github.com/kripken/emscripten/issues/1992) were problems in
 the past. Use Emscripten 1.8.11 or later.
 * Emscripten [issue 1909](https://github.com/kripken/emscripten/issues/1909)
-makes some switch statements highly inefficient. The main switch statements
-used for CPU emulation end up using long chains of comparisons, making DOSBox
-very slow. This problem does not have a proper fix. This
-[patch](https://gist.github.com/dreamlayers/8463670) is not totally correct,
-but it can be used and gives good performance in Firefox.
-* V8 JavaScript Engine [issue
+used to make large switch statements highly inefficient. It seems fixed now,
+but V8 JavaScript Engine [issue
 2275](http://code.google.com/p/v8/issues/detail?id=2275) prevents large switch
-statements from being optimized. Because of this and emscripten issue 1909,
-the simple, normal and prefetch cores are automatically transformed. Case
+statements from being optimized. Because of this, the simple, normal and
+prefetch cores are automatically transformed. Case
 statements for x86 instructions become functions, and an array of function
 pointers is used instead of the switch statements. The `--enable-funarray`
 configure option controls this and defaults to yes.
@@ -66,7 +65,8 @@ DOSBox can only give full precision when running on an x86 CPU.
 Compiling
 ---------
 
-Configure with `emconfigure ./configure` and build with `make`.
+First, create `./configure` by running `./autogen.sh`. Then
+configure with `emconfigure ./configure` and build with `make`.
 This will create `src/dosbox.js` which contains DOSBox and `src/dosbox.html`,
 a web page for use as a template by the packager. These cannot be used as-is.
 You need to provide DOSBox with files to run and command line arguments for
@@ -89,11 +89,25 @@ is enabled, `dosbox.html.mem` needs to be in the same folder as `dosbox.js`.
 The memory initialization file is large but it compresses well. If served in
 compressed format, it should save bandwidth and speed up startup.
 
-Packaging DOS programs
-----------------------
+Running DOS Programs
+--------------------
 
-Web pages for running DOS programs can be created using the `src/packager.py`
-Python script. If you have a single DOS executable such as `Gwbasic.exe`, place
+To run DOS programs, you need to provide a suitable web page, load files into
+the Emscripten file system, and give command line arguments to DOSBox. The
+simplest method is by using the included packager tools.
+
+The normal packager tool is `src/packager.py`, which runs the Emscripten
+packager. It requires `dosbox.html`, which is created when building Em-DOSBox.
+If you do not have Emscripten installed, you need to use `src/repackager.py`
+instead. Any packager or repackager HTML output file can be used as a template
+for the repackager. Name it `template.html` and put it in the same directory
+as `repackager.py`.
+
+The following instructions assume use of the normal packager. If using
+repackager, replace `packager.py` with `repackager.py`. You need
+[Python 2](https://www.python.org/downloads/) to run either packager.
+
+If you have a single DOS executable such as `Gwbasic.exe`, place
 it in the same `src` directory as `packager.py` and package it using:
 
 ```./packager.py gwbasic Gwbasic.exe```
