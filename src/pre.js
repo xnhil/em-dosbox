@@ -2,7 +2,6 @@
 Module['screenIsReadOnly'] = true;
 // set nearest neighbor scaling, for sharply upscaled pixels
 var canvasStyle = Module['canvas'].style;
-canvasStyle.msInterpolationMode = "nearest-neighbor";
 canvasStyle.imageRendering = "optimizeSpeed";
 canvasStyle.imageRendering = "-moz-crisp-edges";
 canvasStyle.imageRendering = "-o-crisp-edges";
