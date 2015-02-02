@@ -21,6 +21,7 @@
 #define _GNU_SOURCE
 #endif
 
+#include "config.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -32,6 +33,7 @@
 #include <process.h>
 #endif
 #ifdef EMSCRIPTEN
+#include <emscripten.h>
 #include <html5.h>
 #endif
 
@@ -1533,11 +1535,11 @@ Bitu GFX_GetRGB(Bit8u red,Bit8u green,Bit8u blue) {
 	case SCREEN_SURFACE_DDRAW:
 #endif
 		return SDL_MapRGB(sdl.surface->format,red,green,blue);
-#ifndef EMSCRIPTEN
 #if SDL_VERSION_ATLEAST(2,0,0)
 	case SCREEN_TEXTURE:
 		return SDL_MapRGB(sdl.texture.pixelFormat,red,green,blue);
 #else
+#ifndef EMSCRIPTEN
 	case SCREEN_OVERLAY:
 		{
 			Bit8u y =  ( 9797*(red) + 19237*(green) +  3734*(blue) ) >> 15;
@@ -1549,8 +1551,8 @@ Bitu GFX_GetRGB(Bit8u red,Bit8u green,Bit8u blue) {
 			return (u << 0) | (y << 8) | (v << 16) | (y << 24);
 #endif
 		}
-#endif	// !SDL_VERSION_ATLEAST(2,0,0)
 #endif /* !EMSCRIPTEN */
+#endif	// !SDL_VERSION_ATLEAST(2,0,0)
 	case SCREEN_OPENGL:
 		//USE BGRA otherwise
 		return ((blue << 0) | (green << 8) | (red << 16)) | (255 << 24);
@@ -1946,8 +1948,17 @@ static void GUI_StartUp(Section * sec) {
     Bit32u bmask = 0x00ff0000;
 //#endif
 
+/* I'm sorry about disabling this in some circumstances, but:
+ * The splash screen requires emterpreter sync.
+ * Creating a 2D context prevents subsequent creation of a 3D context.
+ */
+#if !defined(EMSCRIPTEN) || defined(EMTERPRETER_SYNC)
 /* Please leave the Splash screen stuff in working order in DOSBox. We spend a lot of time making DOSBox. */
-	SDL_Surface* splash_surf = SDL_CreateRGBSurface(SDL_SWSURFACE, 640, 400, 32, rmask, gmask, bmask, 0);
+	SDL_Surface* splash_surf = NULL;
+#ifdef EMSCRIPTEN
+	if (output != "texture" && output != "texturenb")
+#endif
+		splash_surf = SDL_CreateRGBSurface(SDL_SWSURFACE, 640, 400, 32, rmask, gmask, bmask, 0);
 	if (splash_surf) {
 #if SDL_VERSION_ATLEAST(2,0,0)
 		SDL_SetSurfaceBlendMode(splash_surf, SDL_BLENDMODE_BLEND);
@@ -1994,6 +2005,9 @@ static void GUI_StartUp(Section * sec) {
 				}
 			}
 			if (exit_splash) break;
+#if defined(EMSCRIPTEN) && defined(EMTERPRETER_SYNC)
+			emscripten_sleep(1);
+#endif
 
 			if (ct<1) {
 				SDL_FillRect(sdl.surface, NULL, SDL_MapRGB(sdl.surface->format, 0, 0, 0));
@@ -2047,7 +2061,7 @@ static void GUI_StartUp(Section * sec) {
 		delete [] tmpbufp;
 
 	}
-
+#endif // !defined(EMSCRIPTEN) || defined(EMTERPRETER_SYNC)
 	/* Get some Event handlers */
 	MAPPER_AddHandler(KillSwitch,MK_f9,MMOD1,"shutdown","ShutDown");
 	MAPPER_AddHandler(CaptureMouse,MK_f10,MMOD1,"capmouse","Cap Mouse");
