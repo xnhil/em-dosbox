@@ -907,15 +907,28 @@ dosurface:
 			LOG_MSG("SDL:Can't create renderer, falling back to surface");
 			goto dosurface;
 		}
+
 		/* SDL_PIXELFORMAT_ARGB8888 is possible with most
 		rendering drivers, "opengles" being a notable exception */
-		sdl.texture.texture = SDL_CreateTexture(sdl.renderer, SDL_PIXELFORMAT_ARGB8888,
+		sdl.texture.texture = SDL_CreateTexture(sdl.renderer,
+#ifdef EMSCRIPTEN
+		// Since Emscripten SDL 2 surface is BGR, things are hard-coded
+		// to use BGR and GFX_RGBONLY actuall means BGRONLY.
+		                                        SDL_PIXELFORMAT_ABGR8888,
+#else
+		                                        SDL_PIXELFORMAT_ARGB8888,
+#endif
 		                                        SDL_TEXTUREACCESS_STREAMING, width, height);
 		/* SDL_PIXELFORMAT_ABGR8888 (not RGB) is the
 		only supported format for the "opengles" driver */
 		if (!sdl.texture.texture) {
 			if (flags & GFX_RGBONLY) goto dosurface;
-			sdl.texture.texture = SDL_CreateTexture(sdl.renderer, SDL_PIXELFORMAT_ABGR8888,
+			sdl.texture.texture = SDL_CreateTexture(sdl.renderer,
+#ifdef EMSCRIPTEN
+			                                        SDL_PIXELFORMAT_ARGB8888,
+#else
+			                                        SDL_PIXELFORMAT_ABGR8888,
+#endif
 			                                        SDL_TEXTUREACCESS_STREAMING, width, height);
 		}
 		if (!sdl.texture.texture) {
