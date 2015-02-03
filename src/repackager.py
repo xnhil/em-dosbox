@@ -2,6 +2,9 @@
 
 import sys, os, shutil, re
 
+def js_escape(s):
+    return s.replace("'", "\\'")
+
 # start: offset of first byte of input file in .data file
 # end: offset of last byte plus one
 def format_request(name, start, end):
@@ -16,7 +19,7 @@ def format_onload(name):
 # Package a single file (really just copy it to .data)
 def data_from_file(name, src):
     shutil.copy(src, name + '.data')
-    dosname = '/' + os.path.split(src)[1]
+    dosname = '/' + js_escape(os.path.split(src)[1])
     requests = [ format_request(dosname, 0, os.stat(src).st_size + 1) ]
     onloads = [ format_onload(dosname) ]
     return [], requests, onloads
@@ -46,13 +49,14 @@ def data_from_dir(name, src):
                 emudir = '/' + subdir[pathlen:] + '/'
                 if os.sep != '/':
                     # Make path separators into forward slashes
-                    emudir = subdir.replace(os.sep, '/');
+                    emudir = emudir.replace(os.sep, '/');
+                emudir = js_escape(emudir)
 
             # Loop through all subdirectories of this directory,
             # creating JS lines for creating those directories.
             for dir in dirs:
                 mkdirs.append('Module[\'FS_createPath\'](\'' + \
-                              emudir + '\', \'' + dir + \
+                              emudir + '\', \'' + js_escape(dir) + \
                               '\', true, true);\n')
 
             # Loop through all files in this directory
@@ -63,7 +67,7 @@ def data_from_dir(name, src):
                     offsend = outf.tell()
 
                     # Create JS lines for loading the file
-                    dosname = emudir + fname
+                    dosname = emudir + js_escape(fname)
                     requests.append(format_request(dosname, offset, offsend))
                     onloads.append(format_onload(dosname))
 
