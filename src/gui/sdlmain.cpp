@@ -2827,6 +2827,14 @@ int main(int argc, char* argv[]) {
 		|SDL_INIT_NOPARACHUTE
 		) < 0 ) E_Exit("Can't init SDL %s",SDL_GetError());
 	sdl.inited = true;
+#if SDL_VERSION_ATLEAST(2,0,0)
+	/* Text input is enabled by video init if there is no on screen keyboard.
+	 * It is not used by DOSBox. Emscripten SDL 2 will only override default
+	 * actions for keys in Chrome, Safari and IE if text input is disabled,
+	 * because they must be overridden in keydown, not keypress.
+	 */
+	if (SDL_IsTextInputActive()) SDL_StopTextInput();
+#endif
 
 #ifndef DISABLE_JOYSTICK
 	//Initialise Joystick separately. This way we can warn when it fails instead
