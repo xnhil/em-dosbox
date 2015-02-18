@@ -31,6 +31,7 @@
 "__ZN9DOS_Shell8CMD_TIMEEPc",
 "__ZN9DOS_Shell7CMD_CLSEPc",
 "__ZN9DOS_Shell8CMD_DATEEPc",
+"__ZN9DOS_Shell8CMD_COPYEPc",
 "__ZL14Reboot_Handlerv",
 "__Z22DOS_LoadKeyboardLayoutPKciS0_",
 "__Z23DOS_KeyboardLayout_InitP7Section",
