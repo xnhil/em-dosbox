@@ -51,6 +51,33 @@ try:
 except Exception, e:
   error('Error evaluating Emscripten configuration: %s' % (str(e)))
 
+# Find folder in PATH environment variable which contains specified file
+def find_in_path(fn):
+    for d in os.environ["PATH"].split(os.pathsep):
+        if os.path.isfile(os.path.join(d, fn)):
+            return d
+    return None
+
+# Find Emscripten from EMSCRIPTEN_ROOT or by searching via PATH
+def find_emscripten():
+    if 'EMSCRIPTEN_ROOT' in globals():
+        em_path = EMSCRIPTEN_ROOT
+    else:
+        em_path = find_in_path('emcc');
+
+    if em_path is None or not os.path.isdir(em_path):
+        error("Can't find Emscripten. Add it to PATH or set EMSCRIPTEN_ROOT.");
+
+    return em_path;
+
+# Find Emscripten's file packager
+def find_packager():
+    p = os.path.join(find_emscripten(), "tools", "file_packager.py");
+    if not os.path.isfile(p):
+        error('Emscripten file_packager.py not found.')
+    return p;
+
+# Run Emscripten's file packager from the appropriate directory
 def run_packager():
     if BASE_DIR != '':
         # Need to change directory because paths in package are
@@ -64,15 +91,15 @@ def run_packager():
     else:
         datafile = OUTPUT_DATA
 
-    try:
-        if 'PYTHON' in globals():
-            python_path = PYTHON
-        else:
-            python_path = sys.executable
+    packager_path = find_packager();
 
-        res = subprocess.check_output([python_path,
-                                       os.path.join(EMSCRIPTEN_ROOT, "tools",
-                                                    "file_packager.py"),
+    if 'PYTHON' in globals():
+        python_path = PYTHON
+    else:
+        python_path = sys.executable
+
+    try:
+        res = subprocess.check_output([python_path, packager_path,
                                        datafile,
                                        "--no-heap-copy",
                                        "--preload",
