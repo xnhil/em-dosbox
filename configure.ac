@@ -589,9 +589,9 @@ esac
 AH_TEMPLATE([EMTERPRETER_SYNC],[Compile for use with Emscripten emterpreter sync.])
 AC_ARG_ENABLE(
   [sync],
-  [AC_HELP_STRING([--enable-sync@<:@=no/yes@:>@],
-    [Use Emscripten emterpreter sync to enable more functionality.])],
-  [], [enable_sync=no])
+  [AC_HELP_STRING([--disable-sync],
+    [Do not use Emscripten emterpreter sync])],
+  [], [enable_sync=yes])
 AM_CONDITIONAL([EMTERPRETER], [test "x$enable_sync" != "xno"])
 
 # Use of Emscripten-specific compiler flags breaks tests compiled with the
