@@ -69,10 +69,11 @@ dnl Check for SDL
 dnl When cross-compiling, the SDL prefix needs to be set, so the right
 dnl sdl-config is found. SDL is included with Emscripten and its
 dnl sdl-config does nothing, so just assume SDL is present then.
-AC_ARG_WITH(sdl2, [AC_HELP_STRING([--with-sdl2@<:@=no/PATH@:>@],
-                  [Build using SDL 2.0 instead of SDL 1.2. If using Emscripten,
-                   you can provide a path to SDL-emscripten.])],
-                  [], [with_sdl2=no])
+AC_ARG_WITH(sdl2, [AC_HELP_STRING([--with-sdl2=no/PATH],
+                  [SDL 2 is used by default. Use this option to select SDL 1
+                   instead or provide a path to a custom Emscripten SDL 2
+                   build.])],
+                  [], [with_sdl2=yes])
 AS_IF([test "x$enable_emscripten" != "xyes"],[
 SDL_VERSION=1.2.0
 AM_PATH_SDL(:,
