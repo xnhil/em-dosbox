@@ -17,30 +17,20 @@ for more information.
 Status
 ------
 
-Em-DOSBox runs many games successfully in web browsers. DOSBox has not been
-fully re-structured for running in a web browser via the Emscripten main loop.
-Some programs can cause DOSBox to run in a loop without returning control
-to the browser. This would cause DOSBox and the browser to appear to hang.
-Such situations should be detected now, and emulation should abort instead.
-
-DOSBox can now take advantage of emterpreter sync support in Emscripten to
-greatly reduce the number of situations which cause this problem. To enable it,
-Use an Emscripten version after 1.29.4 and give the `--enable-sync` argument to
-`./configure`. This will slow down DOSBox, but the impact should be minimal
-because emterpreter is only used for a few functions. With it, interactive
-shell, batch files, running programs from other programs and console input
-should all work.
+Em-DOSBox runs most games successfully in web browsers. Although DOSBox has
+not been fully re-structured for running as an Emscripten main loop, most
+functionality is available thanks to emterpreter sync. A few programs can
+still run into problems due to paging exceptions.
 
 Other issues
 ------------
 
+* Game save files are written into the Emscripten file system, which is by
+  default an in-memory file system. Saved games will be lost when you close
+  the web page.
 * Compiling in Windows is not supported. The build process requires a
   Unix-like environment due to use of GNU Autotools. See Emscripten
   [issue 2208](https://github.com/kripken/emscripten/issues/2208).
-* Emscripten issues
-[1975](https://github.com/kripken/emscripten/issues/1975) and
-[1992](https://github.com/kripken/emscripten/issues/1992) were problems in
-the past. Use Emscripten 1.8.11 or later.
 * Emscripten [issue 1909](https://github.com/kripken/emscripten/issues/1909)
 used to make large switch statements highly inefficient. It seems fixed now,
 but V8 JavaScript Engine [issue
@@ -51,8 +41,8 @@ statements for x86 instructions become functions, and an array of function
 pointers is used instead of the switch statements. The `--enable-funarray`
 configure option controls this and defaults to yes.
 * The same origin policy prevents access to data files when running via a
-file:// URL in Chrome. Use a web server such as `python -m SimpleHTTPServer`
-instead.
+file:// URL in some browsers. Use a web server such as
+`python -m SimpleHTTPServer` instead.
 * In Firefox, ensure that
 [dom.max\_script\_run\_time](http://kb.mozillazine.org/Dom.max_script_run_time)
  is set to a reasonable value that will allow you to regain control in case of
@@ -65,6 +55,13 @@ DOSBox can only give full precision when running on an x86 CPU.
 Compiling
 ---------
 
+Use the latest stable version of Emscripten (from the master branch). For
+more information see the the
+[Emscripten installation instructions](https://kripken.github.io/emscripten-site/docs/getting_started/downloads.html).
+Em-DOSBox depends on bug fixes and new features found in recent versions of
+Emscripten. Some Linux distributions have packages with old versions, which
+should not be used.
+
 First, create `./configure` by running `./autogen.sh`. Then
 configure with `emconfigure ./configure` and build with `make`.
 This will create `src/dosbox.js` which contains DOSBox and `src/dosbox.html`,
@@ -72,22 +69,24 @@ a web page for use as a template by the packager. These cannot be used as-is.
 You need to provide DOSBox with files to run and command line arguments for
 running them.
 
-This branch supports use of SDL 2, but uses SDL 1 by default. To use SDL 2,
-give the `--with-sdl2` option to `./configure`. Emscripten will automatically
-fetch SDL 2 from Emscripten Ports and build it. If you want to use a different
-copy of SDL 2, specify a path as in
-`./configure --with-sdl2=/path/to/SDL-emscripten`.
+This branch supports SDL 2 and uses it by default. Emscripten will
+automatically fetch SDL 2 from Emscripten Ports and build it. Use of `make -j`
+to speed up compilation by running multiple Emscripten processes in parallel
+[may break this](https://github.com/kripken/emscripten/issues/3033).
+Once SDL 2 has been built by Emscripten, you can use `make -j`.
+To use a different pre-built copy of Emscripten SDL 2, specify a path as in
+`emconfigure ./configure --with-sdl2=/path/to/SDL-emscripten`. To use SDL 1,
+give a `--with-sdl2=no` or `--without-sdl2` argument to `./configure`.
 
-If you want to use emterpreter sync support, use a version of Emscripten
-after 1.29.4, and give the `--enable-sync` option to `./configure`. This is
-required if you want to interactively use the DOS shell, run batch files or
-run programs from other programs.
-
-If the Emscripten
+Emscripten emterpreter sync is used by default. This enables more DOSBox
+features to work, but requires an Emscripten version after 1.29.4 and may
+cause a small performance penalty. To disable use of emterpreter sync,
+add the `--disable-sync` argument to `./configure`. When sync is used,
+the Emscripten
 [memory initialization file](https://kripken.github.io/emscripten-site/docs/optimizing/Optimizing-Code.html#memory-initialization)
-is enabled, `dosbox.html.mem` needs to be in the same folder as `dosbox.js`.
-The memory initialization file is large but it compresses well. If served in
-compressed format, it should save bandwidth and speed up startup.
+is enabled, which means `dosbox.html.mem` needs to be in the same folder as
+`dosbox.js`. The memory initialization file is large. Serve it in compressed
+format to save bandwidth.
 
 Running DOS Programs
 --------------------
