@@ -115,7 +115,13 @@ def run_packager():
 def inject_files(f):
     f.write('<script type="text/javascript">')
     f.write(run_packager())
-    f.write("Module['arguments'] = [ './" + EXECUTABLE + "' ];\n</script>\n")
+    if EXECUTABLE.upper().endswith(('.EXE', '.COM', '.BAT')):
+        cmdline = '\'./' + EXECUTABLE + '\''
+    else:
+        # DOS can't execute it, so assume it is a bootable disk image
+        print 'Packaging file as bootable disk image.'
+        cmdline = '\'-c\', \'mount a .\', \'-c\', \'boot a:' + EXECUTABLE + '\''
+    f.write("Module['arguments'] = [ " + cmdline + " ];\n</script>\n")
 
 try:
     outf = open(OUTPUT_HTML, 'w')
