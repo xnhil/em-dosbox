@@ -39,6 +39,7 @@ AC_PROG_CPP
 AC_PROG_CXX
 AC_PROG_INSTALL
 AC_PROG_RANLIB
+AM_PROG_AR
 
 dnl This probably needs to be after Automake init
 AM_CONDITIONAL([EMSCRIPTEN_BUILD], [test "x$enable_emscripten" = "xyes"])
