@@ -17,8 +17,6 @@
  */
 
 
-#ifndef EMSCRIPTEN
-
 #include <cctype>
 #include <cstring>
 #include "cdrom.h"
@@ -554,4 +552,3 @@ bool isoDrive :: lookup(isoDirEntry *de, const char *path) {
 	return true;
 }
 
-#endif /* !EMSCRIPTEN */

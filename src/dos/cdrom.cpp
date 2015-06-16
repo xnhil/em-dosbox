@@ -23,6 +23,7 @@
 
 #include "SDL_version.h"
 
+#include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -177,11 +178,11 @@ int CDROM_GetMountType(char* path, int forceCD) {
 		if (strcmp(buffer,cdName)==0) return 0;
 	};
 #endif
-	
+#endif /* !EMSCRIPTEN */
 	// Detect ISO
 	struct stat file_stat;
 	if ((stat(path, &file_stat) == 0) && (file_stat.st_mode & S_IFREG)) return 1; 
-#endif /* !EMSCRIPTEN */
+
 	return 2;
 }
 

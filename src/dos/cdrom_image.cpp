@@ -19,8 +19,13 @@
 
 /* Emscripten could theoretically support CD images, but this
  * implementation uses a SDL Mutex, which isn't supported
+ *
+ * jbanes 2015-06-15: Mutexes only matter in a truly multithreaded
+ * environment. Since Javascript is effectively single-threaded,
+ * it should be safe to disable the mutexes. Note that I've also 
+ * enabled various downstream files that were otherwise disabled.
  */
-#ifndef EMSCRIPTEN
+
 
 #include <cctype>
 #include <cmath>
@@ -160,7 +165,7 @@ CDROM_Interface_Image::CDROM_Interface_Image(Bit8u subUnit)
 {
 	images[subUnit] = this;
 	if (refCount == 0) {
-		player.mutex = SDL_CreateMutex();
+//		player.mutex = SDL_CreateMutex();
 		if (!player.channel) {
 			player.channel = MIXER_AddChannel(&CDAudioCallBack, 44100, "CDAUDIO");
 		}
@@ -175,7 +180,7 @@ CDROM_Interface_Image::~CDROM_Interface_Image()
 	if (player.cd == this) player.cd = NULL;
 	ClearTracks();
 	if (refCount == 0) {
-		SDL_DestroyMutex(player.mutex);
+//		SDL_DestroyMutex(player.mutex);
 		player.channel->Enable(false);
 	}
 }
@@ -250,7 +255,7 @@ bool CDROM_Interface_Image::GetMediaTrayStatus(bool& mediaPresent, bool& mediaCh
 bool CDROM_Interface_Image::PlayAudioSector(unsigned long start,unsigned long len)
 {
 	// We might want to do some more checks. E.g valid start and length
-	SDL_mutexP(player.mutex);
+//	SDL_mutexP(player.mutex);
 	player.cd = this;
 	player.currFrame = start;
 	player.targetFrame = start + len;
@@ -263,7 +268,7 @@ bool CDROM_Interface_Image::PlayAudioSector(unsigned long start,unsigned long le
 		//Real drives either fail or succeed as well
 	} else player.isPlaying = true;
 	player.isPaused = false;
-	SDL_mutexV(player.mutex);
+//	SDL_mutexV(player.mutex);
 	return true;
 }
 
@@ -346,7 +351,7 @@ void CDROM_Interface_Image::CDAudioCallBack(Bitu len)
 		return;
 	}
 	
-	SDL_mutexP(player.mutex);
+//	SDL_mutexP(player.mutex);
 	while (player.bufLen < (Bits)len) {
 		bool success;
 		if (player.targetFrame > player.currFrame)
@@ -362,7 +367,7 @@ void CDROM_Interface_Image::CDAudioCallBack(Bitu len)
 			player.isPlaying = false;
 		}
 	}
-	SDL_mutexV(player.mutex);
+//	SDL_mutexV(player.mutex);
 	if (player.ctrlUsed) {
 		Bit16s sample0,sample1;
 		Bit16s * samples=(Bit16s *)&player.buffer;
@@ -776,4 +781,3 @@ void CDROM_Image_Init(Section* section) {
 #endif
 }
 
-#endif /* !EMSCRIPTEN */
