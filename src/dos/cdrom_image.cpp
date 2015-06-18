@@ -165,7 +165,9 @@ CDROM_Interface_Image::CDROM_Interface_Image(Bit8u subUnit)
 {
 	images[subUnit] = this;
 	if (refCount == 0) {
-//		player.mutex = SDL_CreateMutex();
+#ifndef EMSCRIPTEN
+		player.mutex = SDL_CreateMutex();
+#endif
 		if (!player.channel) {
 			player.channel = MIXER_AddChannel(&CDAudioCallBack, 44100, "CDAUDIO");
 		}
@@ -180,7 +182,9 @@ CDROM_Interface_Image::~CDROM_Interface_Image()
 	if (player.cd == this) player.cd = NULL;
 	ClearTracks();
 	if (refCount == 0) {
-//		SDL_DestroyMutex(player.mutex);
+#ifndef EMSCRIPTEN
+		SDL_DestroyMutex(player.mutex);
+#endif
 		player.channel->Enable(false);
 	}
 }
@@ -255,7 +259,9 @@ bool CDROM_Interface_Image::GetMediaTrayStatus(bool& mediaPresent, bool& mediaCh
 bool CDROM_Interface_Image::PlayAudioSector(unsigned long start,unsigned long len)
 {
 	// We might want to do some more checks. E.g valid start and length
-//	SDL_mutexP(player.mutex);
+#ifndef EMSCRIPTEN
+	SDL_mutexP(player.mutex);
+#endif
 	player.cd = this;
 	player.currFrame = start;
 	player.targetFrame = start + len;
@@ -268,7 +274,9 @@ bool CDROM_Interface_Image::PlayAudioSector(unsigned long start,unsigned long le
 		//Real drives either fail or succeed as well
 	} else player.isPlaying = true;
 	player.isPaused = false;
-//	SDL_mutexV(player.mutex);
+#ifndef EMSCRIPTEN
+	SDL_mutexV(player.mutex);
+#endif	
 	return true;
 }
 
@@ -350,8 +358,10 @@ void CDROM_Interface_Image::CDAudioCallBack(Bitu len)
 		player.channel->AddSilence();
 		return;
 	}
-	
-//	SDL_mutexP(player.mutex);
+
+#ifndef EMSCRIPTEN
+	SDL_mutexP(player.mutex);
+#endif
 	while (player.bufLen < (Bits)len) {
 		bool success;
 		if (player.targetFrame > player.currFrame)
@@ -367,7 +377,9 @@ void CDROM_Interface_Image::CDAudioCallBack(Bitu len)
 			player.isPlaying = false;
 		}
 	}
-//	SDL_mutexV(player.mutex);
+#ifndef EMSCRIPTEN
+	SDL_mutexV(player.mutex);
+#endif
 	if (player.ctrlUsed) {
 		Bit16s sample0,sample1;
 		Bit16s * samples=(Bit16s *)&player.buffer;
