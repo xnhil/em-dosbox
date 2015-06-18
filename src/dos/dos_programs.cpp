@@ -1338,7 +1338,6 @@ public:
 					}
 				}
 			} else if (fstype=="iso") {
-#ifndef EMSCRIPTEN
 				if (Drives[drive-'A']) {
 					WriteOut(MSG_Get("PROGRAM_IMGMOUNT_ALREADY_MOUNTED"));
 					return;
@@ -1388,9 +1387,6 @@ public:
 					tmp += "; " + paths[i];
 				}
 				WriteOut(MSG_Get("PROGRAM_MOUNT_STATUS_2"), drive, tmp.c_str());
-#else /* EMSCRIPTEN */
-			WriteOut(MSG_Get("MSCDEX_ERROR_NOT_SUPPORTED"));
-#endif
 			} else {
 				FILE *newDisk = fopen(temp_line.c_str(), "rb+");
 				fseek(newDisk,0L, SEEK_END);
