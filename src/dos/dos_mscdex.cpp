@@ -16,7 +16,6 @@
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-
 #include <string.h>
 #include <ctype.h>
 #include "regs.h"
@@ -311,11 +310,11 @@ int CMscdex::AddDrive(Bit16u _drive, char* physicalPath, Bit8u& subUnit)
 #endif
 		} break;
 #endif	// !SDL_VERSION_ATLEAST(2,0,0)
+#endif /* !EMSCRIPTEN */
 	case 0x01:	// iso cdrom interface	
 		LOG(LOG_MISC,LOG_NORMAL)("MSCDEX: Mounting iso file as cdrom: %s", physicalPath);
 		cdrom[numDrives] = new CDROM_Interface_Image((Bit8u)numDrives);
 		break;
-#endif /* !EMSCRIPTEN */
 	case 0x02:	// fake cdrom interface (directories)
 		cdrom[numDrives] = new CDROM_Interface_Fake;
 		LOG(LOG_MISC,LOG_NORMAL)("MSCDEX: Mounting directory as cdrom: %s",physicalPath);
@@ -392,20 +391,15 @@ int CMscdex::AddDrive(Bit16u _drive, char* physicalPath, Bit8u& subUnit)
 
 	if (dinfo[0].drive-1==_drive) {
 		CDROM_Interface *_cdrom = cdrom[numDrives];
-#ifndef EMSCRIPTEN
 		CDROM_Interface_Image *_cdimg = CDROM_Interface_Image::images[numDrives];
-#endif
+
 		for (Bit16u i=GetNumDrives(); i>0; i--) {
 			dinfo[i] = dinfo[i-1];
 			cdrom[i] = cdrom[i-1];
-#ifndef EMSCRIPTEN
 			CDROM_Interface_Image::images[i] = CDROM_Interface_Image::images[i-1];
-#endif
 		}
 		cdrom[0] = _cdrom;
-#ifndef EMSCRIPTEN
 		CDROM_Interface_Image::images[0] = _cdimg;
-#endif
 		dinfo[0].drive		= (Bit8u)_drive;
 		dinfo[0].physDrive	= (Bit8u)toupper(physicalPath[0]);
 		subUnit = 0;
