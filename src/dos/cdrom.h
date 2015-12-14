@@ -86,7 +86,7 @@ public:
 	virtual void	InitNewMedia		(void) {};
 };	
 
-#if !SDL_VERSION_ATLEAST(2,0,0)
+#if !defined(EMSCRIPTEN) && !SDL_VERSION_ATLEAST(2,0,0)
 class CDROM_Interface_SDL : public CDROM_Interface
 {
 public:
@@ -115,7 +115,7 @@ private:
 	int		driveID;
 	Uint32	oldLeadOut;
 };
-#endif /* !SDL_VERSION_ATLEAST(2,0,0) */
+#endif /* !defined(EMSCRIPTEN) && !SDL_VERSION_ATLEAST(2,0,0) */
 
 class CDROM_Interface_Fake : public CDROM_Interface
 {
@@ -135,7 +135,6 @@ public:
 	bool	LoadUnloadMedia		(bool /*unload*/) { return true; };
 };	
 
-//#ifndef EMSCRIPTEN
 class CDROM_Interface_Image : public CDROM_Interface
 {
 private:
@@ -213,7 +212,9 @@ static	void	CDAudioCallBack(Bitu len);
 static  struct imagePlayer {
 		CDROM_Interface_Image *cd;
 		MixerChannel   *channel;
+#ifndef EMSCRIPTEN
 		SDL_mutex 	*mutex;
+#endif
 		Bit8u   buffer[8192];
 		int     bufLen;
 		int     currFrame;	
@@ -241,7 +242,6 @@ typedef	std::vector<Track>::iterator	track_it;
 	std::string	mcn;
 	Bit8u	subUnit;
 };
-//#endif /* !EMSCRIPTEN */
 
 #if !SDL_VERSION_ATLEAST(2,0,0)
 
