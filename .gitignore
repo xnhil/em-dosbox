@@ -14,6 +14,7 @@ Makefile.in
 /install-sh
 /missing
 /stamp-h1
+/ar-lib
 
 # End of template. Additional autoconf and automake files follow.
 
@@ -25,6 +26,8 @@ Makefile
 /config.status
 /config.sub
 .deps
+/a.out
+/a.out.js
 
 # Compiled files
 
