@@ -88,7 +88,7 @@ static struct {
 	Bit32u blocksize;
 } mixer;
 
-Bit8u MixTemp[MIXER_BUFSIZE];
+Bit8u MixTemp[MIXER_BUFSIZE] __attribute__((aligned(4)));
 
 MixerChannel * MIXER_AddChannel(MIXER_Handler handler,Bitu freq,const char * name) {
 	MixerChannel * chan=new MixerChannel();
