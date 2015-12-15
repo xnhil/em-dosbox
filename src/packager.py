@@ -1,18 +1,19 @@
 #!/usr/bin/python
+from __future__ import print_function
 import sys, os, subprocess
 
 if len(sys.argv) < 3:
-    print 'To package a single file:'
-    print '    python %s PACKAGE_NAME FILE' % sys.argv[0];
-    print 'To package a directory tree:'
-    print '    python %s PACKAGE_NAME DIRECTORY FILE_TO_RUN' % sys.argv[0];
-    print ''
-    print 'Requires dosbox.html as template.'
-    print 'Creates PACKAGE_NAME.data and PACKAGE_NAME.html.'
+    print('To package a single file:')
+    print('    python %s PACKAGE_NAME FILE' % sys.argv[0])
+    print('To package a directory tree:')
+    print('    python %s PACKAGE_NAME DIRECTORY FILE_TO_RUN' % sys.argv[0])
+    print()
+    print('Requires dosbox.html as template.')
+    print('Creates PACKAGE_NAME.data and PACKAGE_NAME.html.')
     sys.exit(1)
 
 def error(s):
-    print >> sys.stderr, s
+    print(s, file=sys.stderr)
     sys.exit(1)
 
 OUTPUT_HTML = sys.argv[1] + '.html'
@@ -41,14 +42,14 @@ def getfiletext(fn):
     try:
         f = open(fn, 'r')
         txt = f.read()
-    except Exception, e:
+    except Exception as e:
         error('Error reading file: %s' % (str(e)))
     f.close
     return txt
 
 try:
   exec(getfiletext(os.path.expanduser('~/.emscripten')))
-except Exception, e:
+except Exception as e:
   error('Error evaluating Emscripten configuration: %s' % (str(e)))
 
 # Find folder in PATH environment variable which contains specified file
@@ -95,6 +96,8 @@ def run_packager():
 
     if 'PYTHON' in globals():
         python_path = PYTHON
+    elif sys.version_info.major != 2:
+        python_path = 'python2' # Emscripten requires Python 2
     else:
         python_path = sys.executable
 
@@ -103,7 +106,7 @@ def run_packager():
                                        datafile,
                                        "--no-heap-copy",
                                        "--preload",
-                                       PACKAGE_ARG])
+                                       PACKAGE_ARG], universal_newlines=True)
     except:
         error('Error reported by Emscripten packager.')
 
@@ -119,13 +122,13 @@ def inject_files(f):
         cmdline = '\'./' + EXECUTABLE + '\''
     else:
         # DOS can't execute it, so assume it is a bootable disk image
-        print 'Packaging file as bootable disk image.'
+        print('Packaging file as bootable disk image.')
         cmdline = '\'-c\', \'mount a .\', \'-c\', \'boot a:' + EXECUTABLE + '\''
     f.write("Module['arguments'] = [ " + cmdline + " ];\n</script>\n")
 
 try:
     outf = open(OUTPUT_HTML, 'w')
-except Exception, e:
+except Exception as e:
     error('Error opening %s for writing: %s' %( OUTPUT_HTML, (str(e)) ))
 
 with open('dosbox.html') as f:
@@ -142,4 +145,4 @@ with open('dosbox.html') as f:
         else:
             outf.write(line)
 
-outf.close
+outf.close()

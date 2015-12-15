@@ -1,5 +1,5 @@
 #!/usr/bin/python
-
+from __future__ import print_function
 from subprocess import check_output
 from sys import argv
 import re
@@ -15,9 +15,10 @@ def git_modified(s):
 def git_rev(path):
     try:
         rev = check_output(['git', '-C', path,  'rev-parse', \
-                           '--verify', '--short', 'HEAD']).splitlines()[0]
-
-        sts = check_output(['git', '-C', path,  'status', '--porcelain'])
+                           '--verify', '--short', 'HEAD'], \
+                           universal_newlines=True).splitlines()[0]
+        sts = check_output(['git', '-C', path,  'status', '--porcelain'],
+                           universal_newlines=True)
         if (git_modified(sts)):
             rev += 'M'
 
@@ -30,7 +31,8 @@ def git_rev(path):
 # Ideally having the configure options and compiler flags would be nice.
 def compiler_rev(compiler):
     try:
-        out = check_output([compiler, '--version']).splitlines()[0]
+        out = check_output([compiler, '--version'],
+                           universal_newlines=True).splitlines()[0]
 
         if out.startswith('em'):
             # Assume emscripten
@@ -53,8 +55,8 @@ def make_version_h(gitpath, compiler):
 # Program begins here
 
 if len(argv) != 4:
-    print "Usage: python", argv[0], \
-          "VERSION_HEADER, GIT_PATH, COMPILER_PATH"
+    print("Usage: python", argv[0],
+          "VERSION_HEADER, GIT_PATH, COMPILER_PATH")
     exit(1)
 
 current_version = make_version_h(argv[2], argv[3])

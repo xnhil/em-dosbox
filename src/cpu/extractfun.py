@@ -1,9 +1,10 @@
+from __future__ import print_function
 import sys
 import re
 import hashlib
 
 def error(s):
-    print >> sys.stderr, 'ERROR:', s
+    print('ERROR:', s, file=sys.stderr)
     sys.exit(1)
 
 # Functions are stored here, removing duplicates. Then they are printed.
@@ -44,8 +45,8 @@ class FunctionStore:
                     newname = self.NAMINGS[namingidx](self,
                                                       self.functions[colidx])
                     if namingidx == 2:
-                        print self.functions[idx]
-                        print self.functions[colidx]
+                        print(self.functions[idx])
+                        print(self.functions[colidx])
                     self.idx2name[colidx] = newname
                     self.name2idx[newname] = colidx
                     # Reserve old name so it can't be used
@@ -61,7 +62,7 @@ class FunctionStore:
     # to another, only a pointer to that function is stored.
     def add(self, fset, fcases, ftext):
         self.idx2name.append(0);
-        ftexthash = hashlib.sha1(ftext).hexdigest()
+        ftexthash = hashlib.sha1(ftext.encode('UTF-8')).hexdigest()
         if ftexthash in self.hash2idx:
             dupeidx = self.hash2idx[ftexthash]
             dupe = self.functions[dupeidx]
@@ -85,11 +86,11 @@ class FunctionStore:
 
     # Print out all functions
     def output_fun(self, f):
-        for i in xrange(0, len(self.functions)):
-            if len(self.functions[i]) == 4:
+        for i, fun in enumerate(self.functions):
+            if len(fun) == 4:
                 # This is a real function, not a reference to another one
                 f.write('static int ' + self.idx2name[i] + '(void) {\n')
-                f.write(self.functions[i][3])
+                f.write(fun[3])
                 f.write('\n}\n\n')
 
     ARRAYLEN = 1024
@@ -99,16 +100,16 @@ class FunctionStore:
         for i in range(0, len(self.idnum2str)):
             self.funptrarr.append([-1] * self.ARRAYLEN)
         # Initialize them
-        for i in xrange(0, len(self.functions)):
-            if len(self.functions[i]) == 4:
+        for i, fun in enumerate(self.functions):
+            if len(fun) == 4:
                 # This is a real function with its own name
                 idx = i
             else:
                 # This is a reference to another function
-                idx = self.functions[i][2]
+                idx = fun[2]
             # Point all cases to idx
-            for case in self.functions[i][1]:
-                self.funptrarr[self.functions[i][0]][case] = idx
+            for case in fun[1]:
+                self.funptrarr[fun[0]][case] = idx
 
     # Replace duplicate arrays with index of earlier matching array
     def deduplicate_arrays(self):

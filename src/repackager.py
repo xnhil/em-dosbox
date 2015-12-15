@@ -1,5 +1,5 @@
 #!/usr/bin/python
-
+from __future__ import print_function
 import sys, os, shutil, re
 
 def js_escape(s):
@@ -116,7 +116,7 @@ def create_html(template, name, mkdirs, requests, onloads, cmdline):
             'Module[\'arguments\'] = [ ' + cmdline + ' ];\n')
 
     with open(template, 'r') as inf, \
-         open(name + '.html', 'wb') as outf:
+         open(name + '.html', 'w') as outf:
         for line in iter(inf.readline, ''):
             replaced = False;
             i = 0
@@ -139,7 +139,7 @@ if len(sys.argv) == 4:
     exeh = os.path.join(sys.argv[2], sys.argv[3])
     # Verify executable exists and fix up path separators if needed
     if not os.path.isfile(exeh):
-        print "Did not find file to run at %s" % exeh
+        print("Did not find file to run at %s" % exeh)
         sys.exit(1)
     if os.sep == '/':
         exee = sys.argv[3]
@@ -153,24 +153,24 @@ elif len(sys.argv) == 3:
         cmdline = '\'./' + cmdline + '\''
     else:
         # DOS can't execute it, so assume it is a bootable disk image
-        print 'Packaging file as bootable disk image.'
+        print('Packaging file as bootable disk image.')
         cmdline = '\'-c\', \'mount a .\', \'-c\', \'boot a:' + cmdline + '\''
 else:
-    print 'This is a stand-alone packager for EM-DOSBox. Using a packager-generated'
-    print 'HTML file as a template, it can create new packages without Emscripten.'
-    print ''
-    print 'To package a single file:'
-    print '    python %s BASENAME DIR FILE_TO_RUN' % sys.argv[0];
-    print 'To package a directory tree:'
-    print '    python %s OUTPUT_NAME DIR FILE_TO_RUN' % sys.argv[0];
-    print ''
-    print 'Creates PACKAGE_NAME.data and PACKAGE_NAME.html.'
-    print 'Single files without executable extensions assumed to be bootable disk image.'
+    print('This is a stand-alone packager for EM-DOSBox. Using a packager-generated')
+    print('HTML file as a template, it can create new packages without Emscripten.')
+    print()
+    print('To package a single file:')
+    print('    python %s BASENAME FILE_TO_RUN' % sys.argv[0])
+    print('To package a directory tree:')
+    print('    python %s OUTPUT_NAME DIR FILE_TO_RUN' % sys.argv[0])
+    print()
+    print('Creates PACKAGE_NAME.data and PACKAGE_NAME.html.')
+    print('Single files without executable extensions assumed to be bootable disk image.')
     sys.exit(1)
 
 template = os.path.join(os.path.split(sys.argv[0])[0], 'template.html')
 if not os.path.isfile(template):
-    print 'HTML template file needed at: ' + template
+    print('HTML template file needed at: ' + template)
     sys.exit(1)
 
 create_html(template, sys.argv[1], mkdirs, requests, onloads, cmdline)
