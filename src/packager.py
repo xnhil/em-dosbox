@@ -129,10 +129,12 @@ except Exception, e:
     error('Error opening %s for writing: %s' %( OUTPUT_HTML, (str(e)) ))
 
 with open('dosbox.html') as f:
+    have_injected = False
     for line in iter(f.readline, ''):
-        if 'src="dosbox.js"' in line:
-            inject_files(outf)
+        if '</script>' in line and not have_injected:
             outf.write(line)
+            inject_files(outf)
+            have_injected = True
         elif '<title>' in line:
             outf.write('    <title>')
             outf.write(sys.argv[1]);
