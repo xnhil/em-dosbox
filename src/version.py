@@ -14,11 +14,11 @@ def git_modified(s):
 # Inspired by Rockbox version.sh
 def git_rev(path):
     try:
-        rev = check_output(['git', '-C', path,  'rev-parse', \
+        rev = check_output(['git', 'rev-parse', \
                            '--verify', '--short', 'HEAD'], \
-                           universal_newlines=True).splitlines()[0]
-        sts = check_output(['git', '-C', path,  'status', '--porcelain'],
-                           universal_newlines=True)
+                           universal_newlines=True, cwd=path).splitlines()[0]
+        sts = check_output(['git', 'status', '--porcelain'],
+                           universal_newlines=True, cwd=path)
         if (git_modified(sts)):
             rev += 'M'
 
