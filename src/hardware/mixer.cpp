@@ -425,7 +425,7 @@ static void MIXER_Mix_NoSound(void) {
 	mixer.done=0;
 }
 
-static void MIXER_CallBack(void * userdata, Uint8 *stream, int len) {
+static void SDLCALL MIXER_CallBack(void * userdata, Uint8 *stream, int len) {
 #if SDL_VERSION_ATLEAST(2,0,0)
 	memset(stream, 0, len);
 #endif

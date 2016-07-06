@@ -1,7 +1,7 @@
 [
 "_main",
 "__Z10SHELL_Initv",
-"__Z12DOS_ReadFiletPhPt",
+"__Z12DOS_ReadFiletPhPtb",
 "__Z17DOSBOX_RunMachinev",
 "__Z19CALLBACK_RunRealInth",
 "__Z19CALLBACK_RunRealFartt",
