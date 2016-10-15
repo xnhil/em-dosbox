@@ -389,8 +389,19 @@ static Bit8u * VGA_TEXT_Draw_Line(Bitu vidstart, Bitu line) {
 	if (line == 0) {
 		static bool curinited = 0;
 		if (!curinited) {
+			static NCURSES_COLOR_T vgacolors[8] = {
+				COLOR_BLACK, COLOR_BLUE, COLOR_GREEN, COLOR_CYAN,
+				COLOR_RED, COLOR_MAGENTA, COLOR_YELLOW, COLOR_WHITE
+			};
+
 			initscr();
 			raw();
+
+			start_color();
+			for (int i = 0; i < 8*8; i++) {
+				init_pair(i + 1, vgacolors[i & 7], vgacolors[i >> 3]);
+			}
+
 			curinited = true;
 		}
 		if (vidstart == 0) {
@@ -399,6 +410,12 @@ static Bit8u * VGA_TEXT_Draw_Line(Bitu vidstart, Bitu line) {
 		}
 		for (Bitu cx=0;cx<vga.draw.blocks;cx++) {
 			Bitu chr=vidmem[cx*2];
+			Bitu col=vidmem[cx*2+1];
+			attron(COLOR_PAIR((col & 7) + ((col & 0x70) >> 1) + 1));
+			if (col & 8)
+				attron(A_BOLD);
+			else
+				attroff(A_BOLD);
 			addch(chr);
 		}
 	}
