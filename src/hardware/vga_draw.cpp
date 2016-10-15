@@ -19,12 +19,14 @@
 
 #include <string.h>
 #include <math.h>
+#include <ncurses.h>
 #include "dosbox.h"
 #include "video.h"
 #include "render.h"
 #include "../gui/render_scalers.h"
 #include "vga.h"
 #include "pic.h"
+#include "stdio.h"
 
 //#undef C_DEBUG
 //#define C_DEBUG 1
@@ -384,6 +386,22 @@ static Bit8u * VGA_TEXT_Draw_Line(Bitu vidstart, Bitu line) {
 	Bits font_addr;
 	Bit32u * draw=(Bit32u *)TempLine;
 	const Bit8u* vidmem = VGA_Text_Memwrap(vidstart);
+	if (line == 0) {
+		static bool curinited = 0;
+		if (!curinited) {
+			initscr();
+			raw();
+			curinited = true;
+		}
+		if (vidstart == 0) {
+			refresh();
+			move(0,0);
+		}
+		for (Bitu cx=0;cx<vga.draw.blocks;cx++) {
+			Bitu chr=vidmem[cx*2];
+			addch(chr);
+		}
+	}
 	for (Bitu cx=0;cx<vga.draw.blocks;cx++) {
 		Bitu chr=vidmem[cx*2];
 		Bitu col=vidmem[cx*2+1];
