@@ -595,6 +595,13 @@ AC_ARG_ENABLE(
   [], [enable_sync=yes])
 AM_CONDITIONAL([EMTERPRETER], [test "x$enable_sync" != "xno"])
 
+AC_ARG_ENABLE(
+  [wasm],
+  [AC_HELP_STRING([--enable-wasm],
+    [Build to WebAssembly instead of asm.js])],
+  [], [enable_wasm=no])
+AM_CONDITIONAL([WEBASSEMBLY], [test "x$enable_wasm" == "xyes"])
+
 # Use of Emscripten-specific compiler flags breaks tests compiled with the
 # host compiler, so those flags are set at the end.
 AS_IF([test "x$enable_emscripten" = "xyes"],[

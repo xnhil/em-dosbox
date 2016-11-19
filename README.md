@@ -88,6 +88,23 @@ is enabled, which means `dosbox.html.mem` needs to be in the same folder as
 `dosbox.js`. The memory initialization file is large. Serve it in compressed
 format to save bandwidth.
 
+WebAssembly
+-----------
+
+[WebAssembly](https://github.com/kripken/emscripten/wiki/WebAssembly) is a
+binary format which is meant to be a more efficient replacement for asm.js.
+To build to WebAssembly instead of asm.js, the `-s WASM=1` option needs to
+be added to the final `emcc` link command. There is no need to rebuild the
+object files. You can do this using the `--enable-wasm` option when running
+`./configure`. Since WebAssembly is still under very active development, use
+the latest incoming Emscripten and browser development builds like
+[Firefox Nightly](https://nightly.mozilla.org/) and
+[Chrome Canary](https://www.google.com/chrome/browser/canary.html).
+
+Building with WebAssembly changes the dosbox.html file. Files packaged
+using a dosbox.html without WebAssembly will not work with a WebAssembly
+build.
+
 Running DOS Programs
 --------------------
 

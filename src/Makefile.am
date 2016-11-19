@@ -29,6 +29,9 @@ else
 # It is only required when using emterpreter.
 dosbox_LDFLAGS+=--memory-init-file 0
 endif
+if WEBASSEMBLY
+dosbox_LDFLAGS+=-s WASM=1
+endif
 endif
 
 # https://stackoverflow.com/questions/1779984/header-dependency-in-automake
