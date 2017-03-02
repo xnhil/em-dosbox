@@ -34,7 +34,7 @@
 #endif
 #ifdef EMSCRIPTEN
 #include <emscripten.h>
-#include <html5.h>
+#include <emscripten/html5.h>
 #endif
 
 #include "cross.h"
