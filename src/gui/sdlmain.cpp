@@ -379,6 +379,59 @@ static void KillSwitch(bool pressed) {
 	throw 1;
 }
 
+#ifdef EMSCRIPTEN
+/* Emscripten pause code works differently, replacing the main loop with
+   a pause loop. That way there is no need to emterpretify a bunch of
+   mapper functions, and it can also work without Emterpreter. */
+static Bitu Pause_Loop(void);
+static Uint32 pause_key_timeout;
+static bool ignore_pause_key;
+static void PauseDOSBox(bool pressed) {
+	if (!pressed)
+		return;
+	GFX_SetTitle(-1,-1,true);
+	ignore_pause_key = true;
+	pause_key_timeout = SDL_GetTicks() + 500;
+	KEYBOARD_ClrBuffer();
+	DOSBOX_SetLoop(Pause_Loop);
+}
+
+static Bitu Pause_Loop(void) {
+	SDL_Event event;
+	if (ignore_pause_key &&
+		((Sint32)(pause_key_timeout - SDL_GetTicks()) <= 0)) {
+		ignore_pause_key = false;
+	}
+	/* NOTE: This is one of the few places where we use SDL key codes
+	with SDL 2.0, rather than scan codes. Is that the correct behavior? */
+	while (SDL_PollEvent(&event)) {
+		switch (event.type) {
+
+			case SDL_QUIT: KillSwitch(true); break;
+#if SDL_VERSION_ATLEAST(2,0,0)
+			case SDL_WINDOWEVENT:
+				if (event.window.event == SDL_WINDOWEVENT_RESTORED) {
+					// We may need to re-create a texture and more
+					GFX_ResetScreen();
+				}
+				break;
+#endif
+			case SDL_KEYDOWN:   // Must use Pause/Break Key to resume.
+			case SDL_KEYUP:
+			if(!ignore_pause_key && event.key.keysym.sym == SDLK_PAUSE) {
+				GFX_SetTitle(-1,-1,false);
+				DOSBOX_SetNormalLoop();
+				break;
+			}
+		}
+	}
+#ifdef EMTERPRETER_SYNC
+	emscripten_sleep(10);
+#endif
+	return 0;
+}
+#else
+// Normal non-Emscripten pause code
 static void PauseDOSBox(bool pressed) {
 	if (!pressed)
 		return;
@@ -431,6 +484,7 @@ static void PauseDOSBox(bool pressed) {
 		}
 	}
 }
+#endif // !EMSCRIPTEN
 
 #if !SDL_VERSION_ATLEAST(2,0,0)
 #if defined (WIN32)
