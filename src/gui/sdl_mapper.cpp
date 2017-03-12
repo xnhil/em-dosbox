@@ -25,7 +25,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-
+#ifdef EMSCRIPTEN
+#include <emscripten.h>
+#endif
 
 #include "SDL.h"
 #include "SDL_thread.h"
@@ -2632,7 +2634,11 @@ void MAPPER_RunInternal() {
 #endif
 		}
 		BIND_MappingEvents();
+#ifdef EMSCRIPTEN
+		emscripten_sleep(1);
+#else
 		SDL_Delay(1);
+#endif
 	}
 	/* ONE SHOULD NOT FORGET TO DO THIS!
 	Unless a memory leak is desired... */

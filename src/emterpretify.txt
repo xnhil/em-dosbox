@@ -39,5 +39,8 @@
 "__ZN15keyboard_layout18read_codepage_fileEPKci",
 "__ZN15keyboard_layout22switch_keyboard_layoutEPKcRPS_Ri",
 "__ZN18DOS_KeyboardLayoutC2EP7Section",
-"__ZN4KEYB3RunEv"
+"__ZN4KEYB3RunEv",
+"__Z12PIC_RunQueuev",
+"__Z15MAPPER_RunEventj",
+"__Z18MAPPER_RunInternalv"
 ]
