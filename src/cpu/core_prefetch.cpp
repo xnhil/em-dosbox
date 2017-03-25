@@ -206,6 +206,11 @@ static Bit32u Fetchd() {
 
 #define EALookupTable (core.ea_table)
 
+#if defined(FUNARRAY_CORE) && !defined(GET_X86_FUNCTIONS)
+#include "core_funarray.h"
+#include "core_prefetch_fun.h"
+#endif
+
 Bits CPU_Core_Prefetch_Run(void) {
 	bool invalidate_pq=false;
 	while (CPU_Cycles-->0) {
@@ -259,6 +264,9 @@ restart_opcode:
 			default:
 				break;
 		}
+#if defined(FUNARRAY_CORE) && !defined(GET_X86_FUNCTIONS)
+		FUNARRAY_CODE(core.opcode_index+next_opcode, x86p_funptr)
+#else /* Switch statement core */
 		switch (core.opcode_index+next_opcode) {
 		#include "core_normal/prefix_none.h"
 		#include "core_normal/prefix_0f.h"
@@ -266,6 +274,7 @@ restart_opcode:
 		#include "core_normal/prefix_66_0f.h"
 		default:
 		illegal_opcode:
+#endif /* Switch statement core */
 #if C_DEBUG	
 			{
 				Bitu len=(GETIP-reg_eip);

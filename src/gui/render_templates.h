@@ -16,6 +16,11 @@
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
+#ifdef EMSCRIPTEN
+// Both SDL 1 and 2 use Canvas byte order.
+#define BGR_32BPP
+#endif
+
 #if DBPP == 8
 #define PSIZE 1
 #define PTYPE Bit8u
@@ -64,19 +69,25 @@
 #define WC scalerWriteCache.b32
 //#define FC scalerFrameCache.b32
 #define FC (*(scalerFrameCache_t*)(&scalerSourceCache.b32[400][0])).b32
-#define redMask		0xff0000
-#define greenMask	0x00ff00
-#define blueMask	0x0000ff
 #define redBits		8
 #define greenBits	8
 #define blueBits	8
-#define redShift	16
+#define greenMask	0x00ff00
 #define greenShift	8
+#ifdef BGR_32BPP
+#define redMask		0x0000ff
+#define blueMask	0xff0000
+#define redShift	0
+#define blueShift	16
+#else
+#define redMask		0xff0000
+#define blueMask	0x0000ff
+#define redShift	16
 #define blueShift	0
+#endif
 #endif
 
 #define redblueMask (redMask | blueMask)
-
 
 #if SBPP == 8 || SBPP == 9
 #define SC scalerSourceCache.b8
@@ -99,7 +110,11 @@
 #elif DBPP == 16
 #define PMAKE(_VAL) (((_VAL) & 31) | ((_VAL) & ~31) << 1)
 #elif DBPP == 32
+#ifdef BGR_32BPP
+#define PMAKE(_VAL)  (((_VAL&31)<<19)|((_VAL&(31<<5))<<6)|((_VAL&(31<<10))>>7))
+#else
 #define PMAKE(_VAL)  (((_VAL&(31<<10))<<9)|((_VAL&(31<<5))<<6)|((_VAL&31)<<3))
+#endif
 #endif
 #define SRCTYPE Bit16u
 #endif
@@ -111,7 +126,11 @@
 #elif DBPP == 16
 #define PMAKE(_VAL) (_VAL)
 #elif DBPP == 32
+#ifdef BGR_32BPP
+#define PMAKE(_VAL)  (((_VAL&31)<<19)|((_VAL&(63<<5))<<5)|((_VAL&(31<<11))>>8))
+#else
 #define PMAKE(_VAL)  (((_VAL&(31<<11))<<8)|((_VAL&(63<<5))<<5)|((_VAL&31)<<3))
+#endif
 #endif
 #define SRCTYPE Bit16u
 #endif
@@ -123,7 +142,11 @@
 #elif DBPP == 16
 #define PMAKE(_VAL) (PTYPE)(((_VAL&(31<<19))>>8)|((_VAL&(63<<10))>>4)|((_VAL&(31<<3))>>3))
 #elif DBPP == 32
+#ifdef BGR_32BPP
+#define PMAKE(_VAL) (((_VAL&(255<<16))>>16)|(_VAL&(255<<8))|((_VAL&(255<<0))<<16))
+#else
 #define PMAKE(_VAL) (_VAL)
+#endif
 #endif
 #define SRCTYPE Bit32u
 #endif

@@ -56,7 +56,9 @@ static void FPU_PUSH(double in){
 
 
 static void FPU_FPOP(void){
-	if (GCC_UNLIKELY(fpu.tags[TOP] == TAG_Empty)) E_Exit("FPU stack underflow");
+	// A test in OLE2DISP.DLL 2.3.3027.1 detects loss of precision due to
+	// using doubles and intentionally triggers an underflow.
+	//if (GCC_UNLIKELY(fpu.tags[TOP] == TAG_Empty)) E_Exit("FPU stack underflow");
 	fpu.tags[TOP]=TAG_Empty;
 	//maybe set zero in it as well
 	TOP = ((TOP+1)&7);

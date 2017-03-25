@@ -38,7 +38,7 @@
 typedef Bit8u * (* VGA_Line_Handler)(Bitu vidstart, Bitu line);
 
 static VGA_Line_Handler VGA_DrawLine;
-static Bit8u TempLine[SCALER_MAXWIDTH * 4];
+static Bit8u TempLine[SCALER_MAXWIDTH * 4] __attribute__((aligned(4)));
 
 static Bit8u * VGA_Draw_1BPP_Line(Bitu vidstart, Bitu line) {
 	const Bit8u *base = vga.tandy.draw_base + ((line & vga.tandy.line_mask) << vga.tandy.line_shift);
@@ -278,9 +278,9 @@ static Bit8u * VGA_Draw_VGA_Line_HWMouse( Bitu vidstart, Bitu /*line*/) {
 					if (bitsB&bit) *xat ^= 0xFF; // Invert screen data
 					//else Transparent
 				} else if (bitsB&bit) {
-					*xat = vga.s3.hgc.forestack[0]; // foreground color
+					*xat = vga.s3.hgc.forestack.u8[0]; // foreground color
 				} else {
-					*xat = vga.s3.hgc.backstack[0];
+					*xat = vga.s3.hgc.backstack.u8[0];
 				}
 				xat++;
 			}
@@ -320,9 +320,9 @@ static Bit8u * VGA_Draw_LIN16_Line_HWMouse(Bitu vidstart, Bitu /*line*/) {
 				} else if (bitsB&bit) {
 					// Source as well as destination are Bit8u arrays, 
 					// so this should work out endian-wise?
-					*xat = *(Bit16u*)vga.s3.hgc.forestack;
+					*xat = vga.s3.hgc.forestack.u16;
 				} else {
-					*xat = *(Bit16u*)vga.s3.hgc.backstack;
+					*xat = vga.s3.hgc.backstack.u16;
 				}
 				xat++;
 			}
@@ -358,9 +358,9 @@ static Bit8u * VGA_Draw_LIN32_Line_HWMouse(Bitu vidstart, Bitu /*line*/) {
 					if (bitsB&bit) *xat ^= ~0U;
 					//else Transparent
 				} else if (bitsB&bit) {
-					*xat = *(Bit32u*)vga.s3.hgc.forestack;
+					*xat = vga.s3.hgc.forestack.u32;
 				} else {
-					*xat = *(Bit32u*)vga.s3.hgc.backstack;
+					*xat = vga.s3.hgc.backstack.u32;
 				}
 				xat++;
 			}

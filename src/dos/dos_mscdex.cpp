@@ -16,7 +16,6 @@
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-
 #include <string.h>
 #include <ctype.h>
 #include "regs.h"
@@ -47,8 +46,18 @@
 #define	REQUEST_STATUS_DONE		0x0100
 #define	REQUEST_STATUS_ERROR	0x8000
 
+// With no CD-ROM support on SDL 2.0, we need this. ***Taken off SDL_cdrom.h***
+#ifndef CD_FPS
+#define CD_FPS	75
+#endif
+#ifndef MSF_TO_FRAMES
+#define MSF_TO_FRAMES(M, S, F)	((M)*60*CD_FPS+(S)*CD_FPS+(F))
+#endif
+
 // Use cdrom Interface
+#if !SDL_VERSION_ATLEAST(2,0,0)
 int useCdromInterface	= CDROM_USE_SDL;
+#endif
 int forceCD				= -1;
 
 static Bitu MSCDEX_Strategy_Handler(void); 
@@ -254,7 +263,10 @@ int CMscdex::AddDrive(Bit16u _drive, char* physicalPath, Bit8u& subUnit)
 	// Set return type to ok
 	int result = 0;
 	// Get Mounttype and init needed cdrom interface
+	// (physical is unsupported in SDL 2.0)
 	switch (CDROM_GetMountType(physicalPath,forceCD)) {
+#ifndef EMSCRIPTEN
+#if !SDL_VERSION_ATLEAST(2,0,0)
 	case 0x00: {	
 		LOG(LOG_MISC,LOG_NORMAL)("MSCDEX: Mounting physical cdrom: %s"	,physicalPath);
 #if defined (WIN32)
@@ -297,6 +309,8 @@ int CMscdex::AddDrive(Bit16u _drive, char* physicalPath, Bit8u& subUnit)
 		LOG(LOG_MISC,LOG_NORMAL)("MSCDEX: SDL Interface.");
 #endif
 		} break;
+#endif	// !SDL_VERSION_ATLEAST(2,0,0)
+#endif /* !EMSCRIPTEN */
 	case 0x01:	// iso cdrom interface	
 		LOG(LOG_MISC,LOG_NORMAL)("MSCDEX: Mounting iso file as cdrom: %s", physicalPath);
 		cdrom[numDrives] = new CDROM_Interface_Image((Bit8u)numDrives);
@@ -378,6 +392,7 @@ int CMscdex::AddDrive(Bit16u _drive, char* physicalPath, Bit8u& subUnit)
 	if (dinfo[0].drive-1==_drive) {
 		CDROM_Interface *_cdrom = cdrom[numDrives];
 		CDROM_Interface_Image *_cdimg = CDROM_Interface_Image::images[numDrives];
+
 		for (Bit16u i=GetNumDrives(); i>0; i--) {
 			dinfo[i] = dinfo[i-1];
 			cdrom[i] = cdrom[i-1];
@@ -932,6 +947,11 @@ bool CMscdex::GetChannelControl(Bit8u subUnit, TCtrl& ctrl) {
 static CMscdex* mscdex = 0;
 static PhysPt curReqheaderPtr = 0;
 
+#ifdef EMSCRIPTEN
+/* Taken from SDL_cdrom.h */
+#define CD_FPS     75
+#define MSF_TO_FRAMES(M, S, F)     ((M)*60*CD_FPS+(S)*CD_FPS+(F))
+#endif
 static Bit16u MSCDEX_IOCTL_Input(PhysPt buffer,Bit8u drive_unit) {
 	Bit8u ioctl_fct = mem_readb(buffer);
 	MSCDEX_LOG("MSCDEX: IOCTL INPUT Subfunction %02X",ioctl_fct);
@@ -1377,10 +1397,12 @@ bool MSCDEX_HasMediaChanged(Bit8u subUnit)
 	return true;
 }
 
+#if !SDL_VERSION_ATLEAST(2,0,0)
 void MSCDEX_SetCDInterface(int intNr, int numCD) {
 	useCdromInterface = intNr;
 	forceCD	= numCD;
 }
+#endif
 
 void MSCDEX_ShutDown(Section* /*sec*/) {
 	delete mscdex;

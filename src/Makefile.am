@@ -17,4 +17,24 @@ dosbox_LDADD = cpu/libcpu.a debug/libdebug.a dos/libdos.a fpu/libfpu.a  hardware
 
 EXTRA_DIST = winres.rc dosbox.ico
 
+if EMSCRIPTEN_BUILD
+dosbox_LDFLAGS=-s TOTAL_MEMORY=134217728 -s ALLOW_MEMORY_GROWTH=0 --pre-js pre.js
+EXTRA_dosbox_DEPENDENCIES=pre.js
+CLEANFILES=dosbox.js dosbox.html.mem dosbox.js.orig.js dosbox.js.tmp.js
+if EMTERPRETER
+dosbox_LDFLAGS+=-s EMTERPRETIFY=1 -s EMTERPRETIFY_ASYNC=1 -s EMTERPRETIFY_WHITELIST=@emterpretify.txt
+EXTRA_dosbox_DEPENDENCIES+=emterpretify.txt
+else
+# Memory init file is huge and it doesn't save bandwith even if using gzip.
+# It is only required when using emterpreter.
+dosbox_LDFLAGS+=--memory-init-file 0
+endif
+if WEBASSEMBLY
+dosbox_LDFLAGS+=-s WASM=1
+endif
+endif
 
+# https://stackoverflow.com/questions/1779984/header-dependency-in-automake
+BUILT_SOURCES=version.stamp
+version.stamp:
+	python version.py ../include/version.h .. $(CXX)

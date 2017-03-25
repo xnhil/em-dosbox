@@ -27,6 +27,9 @@
 #include <iomanip>
 #include <string>
 #include <sstream>
+#if defined(EMSCRIPTEN) && defined(EMTERPRETER_SYNC)
+#include <emscripten.h>
+#endif
 using namespace std;
 
 #include "debug.h"
@@ -1820,7 +1823,13 @@ Bitu DEBUG_Loop(void) {
 	Bit16u oldCS	= SegValue(cs);
 	Bit32u oldEIP	= reg_eip;
 	PIC_runIRQs();
+#if defined(EMSCRIPTEN)
+#if defined(EMTERPRETER_SYNC)
+	emscripten_sleep_with_yield(1);
+#endif
+#else
 	SDL_Delay(1);
+#endif
 	if ((oldCS!=SegValue(cs)) || (oldEIP!=reg_eip)) {
 		CBreakpoint::AddBreakpoint(oldCS,oldEIP,true);
 		CBreakpoint::ActivateBreakpointsExceptAt(SegPhys(cs)+reg_eip);
