@@ -291,6 +291,21 @@ AC_ARG_ENABLE(debug,AC_HELP_STRING([--enable-debug],[Enable debug mode]),[
    fi
 ],)
 
+AH_TEMPLATE(C_CURSOUT,[Define to 1 to enable Curses text mode output, requires libncursesw])
+AC_ARG_ENABLE(cursout,AC_HELP_STRING([--enable-cursout],[Enable Curses text mode output]),[
+   AC_CHECK_HEADER(ncursesw/curses.h,have_ncursesw_h=yes,)
+   AC_CHECK_LIB(ncursesw, initscr, have_ncursesw_lib=yes, , )
+
+   AS_IF([test "x$enable_cursout" = xno],
+         [AC_MSG_RESULT([Curses text mode output not enabled])],
+         [test "x$enable_debug" != xno -a "x$enable_debug" != x ],
+         [AC_MSG_ERROR([Debug uses Curses and cannot be used with Curses text mode output])],
+         [test "x$have_ncursesw_lib" = xyes -a "x$have_ncursesw_h" = xyes],
+         [LIBS="$LIBS -lncursesw"
+          AC_DEFINE(C_CURSOUT,1)],
+         [AC_MSG_ERROR([Can't find ncursesw, which is required for curses text output])])
+],)
+
 AH_TEMPLATE(C_CORE_INLINE,[Define to 1 to use inlined memory functions in cpu core])
 AC_ARG_ENABLE(core-inline,AC_HELP_STRING([--enable-core-inline],[Enable inlined memory handling in CPU Core]),[
   if test x$enable_core_inline = xyes ; then 

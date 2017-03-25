@@ -16,18 +16,19 @@
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
+#ifdef C_CURSOUT
 #define _XOPEN_SOURCE_EXTENDED
-#include <string.h>
-#include <math.h>
 #include <locale.h>
 #include <ncursesw/curses.h>
+#endif
+#include <string.h>
+#include <math.h>
 #include "dosbox.h"
 #include "video.h"
 #include "render.h"
 #include "../gui/render_scalers.h"
 #include "vga.h"
 #include "pic.h"
-#include "stdio.h"
 
 //#undef C_DEBUG
 //#define C_DEBUG 1
@@ -382,6 +383,7 @@ static const Bit8u* VGA_Text_Memwrap(Bitu vidstart) {
 	} else return &vga.tandy.draw_base[vidstart];
 }
 
+#ifdef C_CURSOUT
 static chtype vga2unicode(unsigned char c) {
 	/* Table from https://en.wikipedia.org/wiki/Code_page_437 */
 	static const short vga2uni_tab[256] = {
@@ -448,12 +450,14 @@ static int u8_wc_toutf8(unsigned char *dest, Bit32u ch)
     }
     return 0;
 }
+#endif // C_CURSOUT
 
 static Bit32u FontMask[2]={0xffffffff,0x0};
 static Bit8u * VGA_TEXT_Draw_Line(Bitu vidstart, Bitu line) {
 	Bits font_addr;
 	Bit32u * draw=(Bit32u *)TempLine;
 	const Bit8u* vidmem = VGA_Text_Memwrap(vidstart);
+#ifdef C_CURSOUT
 	if (line == 0) {
 		static bool curinited = 0;
 		if (!curinited) {
@@ -491,6 +495,7 @@ static Bit8u * VGA_TEXT_Draw_Line(Bitu vidstart, Bitu line) {
 				addch(buf[i]);
 		}
 	}
+#endif // C_CURSOUT
 	for (Bitu cx=0;cx<vga.draw.blocks;cx++) {
 		Bitu chr=vidmem[cx*2];
 		Bitu col=vidmem[cx*2+1];
