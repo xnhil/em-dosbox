@@ -219,6 +219,9 @@ void RENDER_EndUpdate( bool abort ) {
 			flags, fps, (Bit8u *)&scalerSourceCache, (Bit8u*)&render.pal.rgb );
 	}
 	if ( render.scale.outWrite ) {
+#if C_CURSOUT
+		TXTOUT_EndUpdate();
+#endif
 		GFX_EndUpdate( abort? NULL : Scaler_ChangedLines );
 		render.frameskip.hadSkip[render.frameskip.index] = 0;
 	} else {

@@ -385,10 +385,6 @@ static Bit8u * VGA_TEXT_Draw_Line(Bitu vidstart, Bitu line) {
 	const Bit8u* vidmem = VGA_Text_Memwrap(vidstart);
 #ifdef C_CURSOUT
 	if (line == 0) {
-		TXTOUT_SetSize(0, 0);
-		if (vidstart == 0) {
-			TXTOUT_EndUpdate();
-		}
 		TXTOUT_Draw_Line(vidmem, vga.draw.blocks);
 	}
 #endif // C_CURSOUT
@@ -1545,6 +1541,7 @@ void VGA_SetupDrawing(Bitu /*val*/) {
 	vga.changes.frame = 0;
 	vga.changes.writeMask = 1;
 #endif
+
     /* 
 	   Cheap hack to just make all > 640x480 modes have 4:3 aspect ratio
 	*/
@@ -1575,6 +1572,11 @@ void VGA_SetupDrawing(Bitu /*val*/) {
 		vga.draw.delay.vtotal,(1000.0/vga.draw.delay.vtotal),
 		vga.draw.delay.vblkstart,vga.draw.delay.vblkend,
 		vga.draw.delay.vrstart,vga.draw.delay.vrend);
+#endif
+
+#ifdef C_CURSOUT
+	TXTOUT_SetSize(vga.draw.blocks,
+	               vga.draw.lines_total/vga.draw.address_line_total);
 #endif
 
 	// need to resize the output window?

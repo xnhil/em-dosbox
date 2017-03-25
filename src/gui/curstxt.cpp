@@ -20,6 +20,7 @@
 
 #ifdef C_CURSOUT
 #define _XOPEN_SOURCE_EXTENDED
+#include <stdlib.h>
 #include <locale.h>
 #include <ncursesw/curses.h>
 #include "dosbox.h"
@@ -91,6 +92,10 @@ static int u8_wc_toutf8(unsigned char *dest, Bit32u ch)
 	return 0;
 }
 
+static void TXTOUT_ShutDown(void) {
+	endwin();
+}
+
 void TXTOUT_SetSize(Bitu width, Bitu height) {
 	static bool curinited = false;
 	if (!curinited) {
@@ -100,7 +105,9 @@ void TXTOUT_SetSize(Bitu width, Bitu height) {
 		};
 
 		setlocale(LC_ALL, "");
+
 		initscr();
+		atexit(TXTOUT_ShutDown);
 		raw();
 
 		start_color();
@@ -112,6 +119,8 @@ void TXTOUT_SetSize(Bitu width, Bitu height) {
 
 		curinited = true;
 	}
+
+	resizeterm(height, width);
 }
 
 void TXTOUT_Draw_Line(const Bit8u* vidmem, Bitu len) {
