@@ -84,6 +84,8 @@ extern bool mouselocked; //true if mouse is confined to window
 #if defined (C_CURSOUT)
 void TXTOUT_SetSize(Bitu width, Bitu height);
 void TXTOUT_Draw_Line(const Bit8u* vidmem, Bitu len);
+void TXTOUT_SetCursor(Bitu col);
+void TXTOUT_StartUpdate(void);
 void TXTOUT_EndUpdate(void);
 #endif
 

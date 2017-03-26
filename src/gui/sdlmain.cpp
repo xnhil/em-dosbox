@@ -1358,7 +1358,6 @@ void GFX_RestoreMode(void) {
 	GFX_UpdateSDLCaptureState();
 }
 
-
 bool GFX_StartUpdate(Bit8u * & pixels,Bitu & pitch) {
 #if SDL_VERSION_ATLEAST(2,0,0)
 	if (!sdl.update_display_contents)

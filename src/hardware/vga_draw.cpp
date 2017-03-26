@@ -404,6 +404,9 @@ static Bit8u * VGA_TEXT_Draw_Line(Bitu vidstart, Bitu line) {
 	if (font_addr>=0 && font_addr<(Bits)vga.draw.blocks) {
 		if (line<vga.draw.cursor.sline) goto skip_cursor;
 		if (line>vga.draw.cursor.eline) goto skip_cursor;
+#if C_CURSOUT
+		TXTOUT_SetCursor(font_addr);
+#endif
 		draw=(Bit32u *)&TempLine[font_addr*8];
 		Bit32u att=TXT_FG_Table[vga.tandy.draw_base[vga.draw.cursor.address+1]&0xf];
 		*draw++=att;*draw++=att;
@@ -805,6 +808,9 @@ static void VGA_PanningLatch(Bitu /*val*/) {
 }
 
 static void VGA_VerticalTimer(Bitu /*val*/) {
+#ifdef C_CURSOUT
+	TXTOUT_StartUpdate();
+#endif
 	vga.draw.delay.framestart = PIC_FullIndex();
 	PIC_AddEvent( VGA_VerticalTimer, (float)vga.draw.delay.vtotal );
 	

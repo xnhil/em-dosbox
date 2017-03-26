@@ -64,6 +64,9 @@ static chtype vga2unicode(unsigned char c) {
 	return vga2uni_tab[c];
 }
 
+static int txt_line;
+static int txt_cursrow, txt_curscol;
+
 /* From http://www.cprogramming.com/tutorial/utf8.c */
 static int u8_wc_toutf8(unsigned char *dest, Bit32u ch)
 {
@@ -116,6 +119,8 @@ void TXTOUT_SetSize(Bitu width, Bitu height) {
 		}
 
 		move(0,0);
+		txt_line = 0;
+		txt_cursrow = 0;
 
 		curinited = true;
 	}
@@ -124,6 +129,9 @@ void TXTOUT_SetSize(Bitu width, Bitu height) {
 }
 
 void TXTOUT_Draw_Line(const Bit8u* vidmem, Bitu len) {
+	move(txt_line, 0);
+	txt_line++;
+
 	for (Bitu cx=0;cx<len;cx++) {
 		Bitu chr=vidmem[cx*2];
 		Bitu col=vidmem[cx*2+1];
@@ -139,9 +147,24 @@ void TXTOUT_Draw_Line(const Bit8u* vidmem, Bitu len) {
 	}
 }
 
+void TXTOUT_SetCursor(Bitu col) {
+	txt_cursrow = txt_line;
+	txt_curscol = col;
+}
+
+void TXTOUT_StartUpdate(void) {
+	txt_line = 0;
+	txt_cursrow = 0;
+}
+
 void TXTOUT_EndUpdate(void) {
+	if (txt_cursrow > 0) {
+		curs_set(1);
+		move(txt_cursrow - 1, txt_curscol);
+	} else {
+		curs_set(0);
+	}
 	refresh();
-	move(0,0);
 }
 
 #endif // C_CURSOUT
