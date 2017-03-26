@@ -538,6 +538,12 @@ static Bit8u* VGA_TEXT_Xlat16_Draw_Line(Bitu vidstart, Bitu line) {
 	Bitu blocks = vga.draw.blocks;
 	if (vga.draw.panning) blocks++; // if the text is panned part of an 
 									// additional character becomes visible
+#ifdef C_CURSOUT
+	// This ignores panning
+	if (line == 0) {
+		TXTOUT_Draw_Line(vidmem, vga.draw.blocks);
+	}
+#endif // C_CURSOUT
 	while (blocks--) { // for each character in the line
 		Bitu chr = *vidmem++;
 		Bitu attr = *vidmem++;
@@ -576,6 +582,9 @@ static Bit8u* VGA_TEXT_Xlat16_Draw_Line(Bitu vidstart, Bitu line) {
 		// the adress of the attribute that makes up the cell the cursor is in
 		Bits attr_addr = (vga.draw.cursor.address-vidstart) >> 1;
 		if (attr_addr >= 0 && attr_addr < (Bits)vga.draw.blocks) {
+#if C_CURSOUT
+			TXTOUT_SetCursor(attr_addr);
+#endif
 			Bitu index = attr_addr * (vga.draw.char9dot? 18:16);
 			draw = (Bit16u*)(&TempLine[index]) + 16 - vga.draw.panning;
 			
