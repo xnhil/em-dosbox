@@ -24,6 +24,7 @@
 #include <locale.h>
 #include <ncursesw/curses.h>
 #include "dosbox.h"
+#include "keyboard.h"
 
 static chtype vga2unicode(unsigned char c) {
 	/* Table from https://en.wikipedia.org/wiki/Code_page_437 */
@@ -63,6 +64,62 @@ static chtype vga2unicode(unsigned char c) {
 	};
 	return vga2uni_tab[c];
 }
+
+#define CKMD_CTRL 1
+#define CKMD_SHIFT 2
+static const struct {
+	KBD_KEYS key;
+	Bit8u mod;
+} txt_basekeys[128] = {
+	{ KBD_NONE, 0 },
+	{ KBD_a, CKMD_CTRL }, { KBD_b, CKMD_CTRL }, { KBD_c, CKMD_CTRL },
+	{ KBD_d, CKMD_CTRL }, { KBD_e, CKMD_CTRL }, { KBD_f, CKMD_CTRL },
+	{ KBD_g, CKMD_CTRL }, { KBD_h, CKMD_CTRL }, { KBD_i, CKMD_CTRL },
+	{ KBD_enter, 0 }, /* { KBD_j, CKMD_CTRL },  */
+	{ KBD_k, CKMD_CTRL }, { KBD_l, CKMD_CTRL },
+	{ KBD_m, CKMD_CTRL }, { KBD_n, CKMD_CTRL }, { KBD_o, CKMD_CTRL },
+	{ KBD_p, CKMD_CTRL }, { KBD_q, CKMD_CTRL }, { KBD_r, CKMD_CTRL },
+	{ KBD_s, CKMD_CTRL }, { KBD_t, CKMD_CTRL }, { KBD_u, CKMD_CTRL },
+	{ KBD_v, CKMD_CTRL }, { KBD_w, CKMD_CTRL }, { KBD_x, CKMD_CTRL },
+	{ KBD_y, CKMD_CTRL }, { KBD_z, CKMD_CTRL }, /* 0x1A = CTRL-Z */
+	{ KBD_esc, 0 },
+	{ KBD_NONE, 0 }, { KBD_NONE, 0 }, { KBD_NONE, 0 }, { KBD_NONE, 0 },
+	{ KBD_space, 0 },
+	{ KBD_1, CKMD_SHIFT }, { KBD_quote, CKMD_SHIFT }, { KBD_3, CKMD_SHIFT},
+	{ KBD_4, CKMD_SHIFT }, { KBD_5, CKMD_SHIFT }, { KBD_7, CKMD_SHIFT },
+	{ KBD_quote, 0 }, { KBD_9, CKMD_SHIFT }, { KBD_0, CKMD_SHIFT },
+	{ KBD_8, CKMD_SHIFT }, { KBD_equals, CKMD_SHIFT }, { KBD_comma, 0 },
+	{ KBD_minus, 0 }, { KBD_period, 0 }, { KBD_slash, 0 },
+	{ KBD_0, 0 }, { KBD_1, 0 }, { KBD_2, 0 }, { KBD_3, 0 }, { KBD_4, 0 },
+	{ KBD_5, 0 }, { KBD_6, 0 }, { KBD_7, 0 }, { KBD_8, 0 }, { KBD_9, 0 },
+	{ KBD_semicolon, CKMD_SHIFT }, { KBD_semicolon, 0 },
+	{ KBD_comma, CKMD_SHIFT }, { KBD_equals, 0 },
+	{ KBD_period, CKMD_SHIFT }, { KBD_slash, CKMD_SHIFT },
+	{ KBD_2, CKMD_SHIFT },
+	{ KBD_a, CKMD_SHIFT }, { KBD_b, CKMD_SHIFT }, { KBD_c, CKMD_SHIFT },
+	{ KBD_d, CKMD_SHIFT }, { KBD_e, CKMD_SHIFT }, { KBD_f, CKMD_SHIFT },
+	{ KBD_g, CKMD_SHIFT }, { KBD_h, CKMD_SHIFT }, { KBD_i, CKMD_SHIFT },
+	{ KBD_j, CKMD_SHIFT }, { KBD_k, CKMD_SHIFT }, { KBD_l, CKMD_SHIFT },
+	{ KBD_m, CKMD_SHIFT }, { KBD_n, CKMD_SHIFT }, { KBD_o, CKMD_SHIFT },
+	{ KBD_p, CKMD_SHIFT }, { KBD_q, CKMD_SHIFT }, { KBD_r, CKMD_SHIFT },
+	{ KBD_s, CKMD_SHIFT }, { KBD_t, CKMD_SHIFT }, { KBD_u, CKMD_SHIFT },
+	{ KBD_v, CKMD_SHIFT }, { KBD_w, CKMD_SHIFT }, { KBD_x, CKMD_SHIFT },
+	{ KBD_y, CKMD_SHIFT }, { KBD_z, CKMD_SHIFT },
+	{ KBD_leftbracket, 0 }, { KBD_backslash, 0 }, { KBD_rightbracket, 0 },
+	{ KBD_6, CKMD_SHIFT }, { KBD_minus, CKMD_SHIFT }, { KBD_grave, 0 },
+	{ KBD_a, 0 }, { KBD_b, 0 }, { KBD_c, 0 },
+	{ KBD_d, 0 }, { KBD_e, 0 }, { KBD_f, 0 },
+	{ KBD_g, 0 }, { KBD_h, 0 }, { KBD_i, 0 },
+	{ KBD_j, 0 }, { KBD_k, 0 }, { KBD_l, 0 },
+	{ KBD_m, 0 }, { KBD_n, 0 }, { KBD_o, 0 },
+	{ KBD_p, 0 }, { KBD_q, 0 }, { KBD_r, 0 },
+	{ KBD_s, 0 }, { KBD_t, 0 }, { KBD_u, 0 },
+	{ KBD_v, 0 }, { KBD_w, 0 }, { KBD_x, 0 },
+	{ KBD_y, 0 }, { KBD_z, 0 },
+	{ KBD_leftbracket, CKMD_SHIFT }, { KBD_backslash, CKMD_SHIFT },
+	{ KBD_rightbracket, CKMD_SHIFT }, { KBD_grave, CKMD_SHIFT },
+	{ KBD_backspace, 0 }
+};
 
 static int txt_line;
 static int txt_cursrow, txt_curscol;
@@ -109,9 +166,10 @@ void TXTOUT_SetSize(Bitu width, Bitu height) {
 
 		setlocale(LC_ALL, "");
 
-		initscr();
+		WINDOW *txt_win = initscr();
 		atexit(TXTOUT_ShutDown);
 		raw();
+		nodelay(txt_win, 1);
 
 		start_color();
 		for (int i = 0; i < 8*8; i++) {
@@ -157,6 +215,34 @@ void TXTOUT_StartUpdate(void) {
 	txt_cursrow = 0;
 }
 
+/* Use of getch() makes the cursor appear wherever it currently is,
+ * which is not necessarily its proper location.
+ */
+static void TXTOUT_Events(void) {
+	while (1) {
+		KBD_KEYS key = KBD_NONE;
+		Bit8u mod = 0;
+		int ch = getch();
+
+		if (ch == ERR) {
+			break;
+		} else if (ch >= 0 &&
+		           ch < sizeof(txt_basekeys) / sizeof(txt_basekeys[0]))  {
+			key = txt_basekeys[ch].key;
+			mod = txt_basekeys[ch].mod;
+		}
+
+		if (key != KBD_NONE) {
+			if (mod & CKMD_CTRL) KEYBOARD_AddKey(KBD_leftctrl, true);
+			if (mod & CKMD_SHIFT) KEYBOARD_AddKey(KBD_leftshift, true);
+			KEYBOARD_AddKey(key, true);
+			KEYBOARD_AddKey(key, false);
+			if (mod & CKMD_SHIFT) KEYBOARD_AddKey(KBD_leftshift, false);
+			if (mod & CKMD_CTRL) KEYBOARD_AddKey(KBD_leftctrl, false);
+		}
+	}
+}
+
 void TXTOUT_EndUpdate(void) {
 	if (txt_cursrow > 0) {
 		curs_set(1);
@@ -165,6 +251,7 @@ void TXTOUT_EndUpdate(void) {
 		curs_set(0);
 	}
 	refresh();
+	TXTOUT_Events();
 }
 
 #endif // C_CURSOUT
