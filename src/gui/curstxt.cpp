@@ -74,7 +74,8 @@ static const struct {
 	{ KBD_NONE, 0 },
 	{ KBD_a, CKMD_CTRL }, { KBD_b, CKMD_CTRL }, { KBD_c, CKMD_CTRL },
 	{ KBD_d, CKMD_CTRL }, { KBD_e, CKMD_CTRL }, { KBD_f, CKMD_CTRL },
-	{ KBD_g, CKMD_CTRL }, { KBD_h, CKMD_CTRL }, { KBD_i, CKMD_CTRL },
+	{ KBD_g, CKMD_CTRL }, { KBD_h, CKMD_CTRL },
+	{ KBD_tab, 0 }, /* { KBD_i, CKMD_CTRL }, */
 	{ KBD_enter, 0 }, /* { KBD_j, CKMD_CTRL },  */
 	{ KBD_k, CKMD_CTRL }, { KBD_l, CKMD_CTRL },
 	{ KBD_m, CKMD_CTRL }, { KBD_n, CKMD_CTRL }, { KBD_o, CKMD_CTRL },
@@ -119,6 +120,27 @@ static const struct {
 	{ KBD_leftbracket, CKMD_SHIFT }, { KBD_backslash, CKMD_SHIFT },
 	{ KBD_rightbracket, CKMD_SHIFT }, { KBD_grave, CKMD_SHIFT },
 	{ KBD_backspace, 0 }
+};
+
+static const struct {
+	int ch;
+	KBD_KEYS key;
+} txt_extkeys[] = {
+	{ KEY_LEFT, KBD_left }, { KEY_RIGHT, KBD_right },
+	{ KEY_UP, KBD_up }, { KEY_DOWN, KBD_down },
+	{ KEY_F(1), KBD_f1 }, { KEY_F(2), KBD_f2 },
+	{ KEY_F(3), KBD_f3 }, { KEY_F(4), KBD_f4 },
+	{ KEY_F(5), KBD_f5 }, { KEY_F(6), KBD_f6 },
+	{ KEY_F(7), KBD_f7 }, { KEY_F(8), KBD_f8 },
+	{ KEY_F(9), KBD_f9 }, { KEY_F(10), KBD_f10 },
+	{ KEY_F(11), KBD_f11 }, { KEY_F(12), KBD_f12 },
+	{ KEY_BACKSPACE, KBD_backspace },
+	{ KEY_ENTER, KBD_enter },
+	{ KEY_PRINT, KBD_printscreen },
+	{ KEY_IC, KBD_insert }, { KEY_HOME, KBD_home },
+	{ KEY_PPAGE, KBD_pageup }, { KEY_DC, KBD_delete },
+	{ KEY_END, KBD_end }, { KEY_NPAGE, KBD_pagedown },
+    /* Not generating KBD_extra_lt_gt, KBD_pause, modifiers and KBD_kp* */
 };
 
 static int txt_line;
@@ -169,7 +191,9 @@ void TXTOUT_SetSize(Bitu width, Bitu height) {
 		WINDOW *txt_win = initscr();
 		atexit(TXTOUT_ShutDown);
 		raw();
-		nodelay(txt_win, 1);
+		noecho();
+		keypad(txt_win, TRUE);
+		nodelay(txt_win, TRUE);
 
 		start_color();
 		for (int i = 0; i < 8*8; i++) {
@@ -230,6 +254,14 @@ static void TXTOUT_Events(void) {
 		           ch < sizeof(txt_basekeys) / sizeof(txt_basekeys[0]))  {
 			key = txt_basekeys[ch].key;
 			mod = txt_basekeys[ch].mod;
+		} else {
+			for (int i = 0; i < sizeof(txt_extkeys) / sizeof(txt_extkeys[0]);
+			     i++) {
+				if (txt_extkeys[i].ch == ch) {
+					key = txt_extkeys[i].key;
+					break;
+				}
+			}
 		}
 
 		if (key != KBD_NONE) {
