@@ -168,3 +168,30 @@ void TXTOUT_EndUpdate(void) {
 }
 
 #endif // C_CURSOUT
+
+#ifndef WITH_SDLGFX
+#include "render.h"
+#include "setup.h"
+#include "vga.h"
+void RENDER_Init(Section * sec) { vga.draw.lines_scaled = 1; }
+static void RENDER_NullDrawLine(const void * src) {}
+ScalerLineHandler_t RENDER_DrawLine = RENDER_NullDrawLine;
+void RENDER_SetSize(Bitu width,Bitu height,Bitu bpp,float fps,double ratio,bool dblw,bool dblh) {}
+bool RENDER_StartUpdate(void) { return true; }
+void RENDER_EndUpdate(bool abort) { TXTOUT_EndUpdate(); }
+void RENDER_SetPal(Bit8u entry,Bit8u red,Bit8u green,Bit8u blue) {}
+void GFX_ShowMsg(char const* format,...) {}
+void GFX_Events(void) {}
+void GFX_ResetScreen(void) {}
+void GFX_SwitchFullScreen(void) {}
+void GFX_EndUpdate( const Bit16u *changedLines ) {}
+void GFX_LosingFocus(void) {}
+void GFX_CaptureMouse(void) {}
+bool mouselocked = false;
+void Mouse_AutoLock(bool enable) {}
+void GFX_SetTitle(Bit32s cycles ,Bits frameskip,bool paused) {}
+void GFX_UpdateDisplayDimensions(int width, int height) {}
+#include "SDL.h"
+SDL_Rect GFX_GetSDLSurfaceSubwindowDims(Bit16u width, Bit16u height) {}
+SDL_Window * GFX_SetSDLSurfaceWindow(Bit16u width, Bit16u height) {}
+#endif // !WITH_SDLGFX

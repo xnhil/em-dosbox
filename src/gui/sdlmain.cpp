@@ -330,6 +330,8 @@ extern bool CPU_CycleAutoAdjust;
 bool startup_state_numlock=false;
 bool startup_state_capslock=false;
 
+#ifdef WITH_SDLGFX
+
 void GFX_SetTitle(Bit32s cycles,Bits frameskip,bool paused){
 	char title[200]={0};
 	static Bit32s internal_cycles=0;
@@ -2517,6 +2519,9 @@ void GFX_ShowMsg(char const* format,...) {
 	if(!no_stdout) printf("%s",buf); //Else buf is parsed again.
 }
 
+#else  // !WITH_SDLGFX
+void GUI_StartUp(Section *sec) { }
+#endif
 
 void Config_Add_SDL() {
 	Section_prop * sdl_sec=control->AddSection_prop("sdl",&GUI_StartUp);
@@ -2612,6 +2617,8 @@ void Config_Add_SDL() {
 #endif
 }
 
+#ifdef WITH_SDLGFX
+
 static void show_warning(char const * const message) {
 	bool textonly = true;
 #ifdef WIN32
@@ -2664,6 +2671,12 @@ static void show_warning(char const * const message) {
 #endif
 	SDL_Delay(12000);
 }
+
+#else // !WITH_SDLGFX
+static void show_warning(char const * const message) {
+	LOG_MSG(message);
+}
+#endif // !WITH_SDLGFX
 
 static void launcheditor() {
 	std::string path,file;
@@ -2801,7 +2814,6 @@ static void erasemapperfile() {
 	unlink(path.c_str());
 	exit(0);
 }
-
 
 //extern void UI_Init(void);
 int main(int argc, char* argv[]) {
