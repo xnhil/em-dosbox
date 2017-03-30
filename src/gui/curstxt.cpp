@@ -125,21 +125,25 @@ static const struct {
 static const struct {
 	int ch;
 	KBD_KEYS key;
+	Bit8u mod;
 } txt_extkeys[] = {
-	{ KEY_LEFT, KBD_left }, { KEY_RIGHT, KBD_right },
-	{ KEY_UP, KBD_up }, { KEY_DOWN, KBD_down },
-	{ KEY_F(1), KBD_f1 }, { KEY_F(2), KBD_f2 },
-	{ KEY_F(3), KBD_f3 }, { KEY_F(4), KBD_f4 },
-	{ KEY_F(5), KBD_f5 }, { KEY_F(6), KBD_f6 },
-	{ KEY_F(7), KBD_f7 }, { KEY_F(8), KBD_f8 },
-	{ KEY_F(9), KBD_f9 }, { KEY_F(10), KBD_f10 },
-	{ KEY_F(11), KBD_f11 }, { KEY_F(12), KBD_f12 },
-	{ KEY_BACKSPACE, KBD_backspace },
-	{ KEY_ENTER, KBD_enter },
-	{ KEY_PRINT, KBD_printscreen },
-	{ KEY_IC, KBD_insert }, { KEY_HOME, KBD_home },
-	{ KEY_PPAGE, KBD_pageup }, { KEY_DC, KBD_delete },
-	{ KEY_END, KBD_end }, { KEY_NPAGE, KBD_pagedown },
+	{ KEY_LEFT, KBD_left, 0 }, { KEY_RIGHT, KBD_right, 0 },
+	{ KEY_SLEFT, KBD_left, CKMD_SHIFT }, { KEY_SRIGHT, KBD_right, CKMD_SHIFT },
+	{ KEY_UP, KBD_up, 0 }, { KEY_DOWN, KBD_down, 0 },
+	{ KEY_BTAB, KBD_tab, CKMD_SHIFT },
+	{ KEY_F(1), KBD_f1, 0 }, { KEY_F(2), KBD_f2, 0 },
+	{ KEY_F(3), KBD_f3, 0 }, { KEY_F(4), KBD_f4, 0 },
+	{ KEY_F(5), KBD_f5, 0 }, { KEY_F(6), KBD_f6, 0 },
+	{ KEY_F(7), KBD_f7, 0 }, { KEY_F(8), KBD_f8, 0 },
+	{ KEY_F(9), KBD_f9, 0 }, { KEY_F(10), KBD_f10, 0 },
+	{ KEY_F(11), KBD_f11, 0 }, { KEY_F(12), KBD_f12, 0 },
+	{ KEY_BACKSPACE, KBD_backspace, 0 },
+	{ KEY_ENTER, KBD_enter, 0 },
+	{ KEY_PRINT, KBD_printscreen, 0 },
+	{ KEY_IC, KBD_insert, 0 }, { KEY_HOME, KBD_home, 0 },
+	{ KEY_PPAGE, KBD_pageup, 0 }, { KEY_DC, KBD_delete, 0 },
+	{ KEY_SDC, KBD_delete, CKMD_SHIFT },
+	{ KEY_END, KBD_end, 0 }, { KEY_NPAGE, KBD_pagedown, 0 }
     /* Not generating KBD_extra_lt_gt, KBD_pause, modifiers and KBD_kp* */
 };
 
@@ -259,6 +263,7 @@ static void TXTOUT_Events(void) {
 			     i++) {
 				if (txt_extkeys[i].ch == ch) {
 					key = txt_extkeys[i].key;
+					mod = txt_extkeys[i].mod;
 					break;
 				}
 			}
