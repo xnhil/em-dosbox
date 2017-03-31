@@ -293,7 +293,7 @@ void TXTOUT_EndUpdate(void) {
 
 #endif // C_CURSOUT
 
-#ifndef WITH_SDLGFX
+#ifndef C_SDLGFX
 #include "render.h"
 #include "setup.h"
 #include "vga.h"
@@ -318,4 +318,4 @@ void GFX_UpdateDisplayDimensions(int width, int height) {}
 #include "SDL.h"
 SDL_Rect GFX_GetSDLSurfaceSubwindowDims(Bit16u width, Bit16u height) {}
 SDL_Window * GFX_SetSDLSurfaceWindow(Bit16u width, Bit16u height) {}
-#endif // !WITH_SDLGFX
+#endif // !C_SDLGFX

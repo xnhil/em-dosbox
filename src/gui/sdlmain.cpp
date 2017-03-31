@@ -330,7 +330,7 @@ extern bool CPU_CycleAutoAdjust;
 bool startup_state_numlock=false;
 bool startup_state_capslock=false;
 
-#ifdef WITH_SDLGFX
+#ifdef C_SDLGFX
 
 void GFX_SetTitle(Bit32s cycles,Bits frameskip,bool paused){
 	char title[200]={0};
@@ -2519,7 +2519,7 @@ void GFX_ShowMsg(char const* format,...) {
 	if(!no_stdout) printf("%s",buf); //Else buf is parsed again.
 }
 
-#else  // !WITH_SDLGFX
+#else  // !C_SDLGFX
 void GUI_StartUp(Section *sec) { }
 #endif
 
@@ -2617,7 +2617,7 @@ void Config_Add_SDL() {
 #endif
 }
 
-#ifdef WITH_SDLGFX
+#ifdef C_SDLGFX
 
 static void show_warning(char const * const message) {
 	bool textonly = true;
@@ -2672,11 +2672,11 @@ static void show_warning(char const * const message) {
 	SDL_Delay(12000);
 }
 
-#else // !WITH_SDLGFX
+#else // !C_SDLGFX
 static void show_warning(char const * const message) {
 	LOG_MSG(message);
 }
-#endif // !WITH_SDLGFX
+#endif // !C_SDLGFX
 
 static void launcheditor() {
 	std::string path,file;

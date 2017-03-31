@@ -31,7 +31,7 @@
 #include "hardware.h"
 #include "support.h"
 
-#ifdef WITH_SDLGFX
+#ifdef C_SDLGFX
 
 #include "render_scalers.h"
 
@@ -636,4 +636,4 @@ void RENDER_Init(Section * sec) {
 	GFX_SetTitle(-1,render.frameskip.max,false);
 }
 
-#endif // WITH_SDLGFX
+#endif // C_SDLGFX

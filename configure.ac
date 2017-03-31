@@ -304,7 +304,19 @@ AC_ARG_ENABLE(cursout,AC_HELP_STRING([--enable-cursout],[Enable Curses text mode
          [LIBS="$LIBS -lncursesw"
           AC_DEFINE(C_CURSOUT,1)],
          [AC_MSG_ERROR([Can't find ncursesw, which is required for curses text output])])
-],)
+],[enable_cursout=no])
+
+AH_TEMPLATE(C_SDLGFX,[Define to 1 to enable SDL graphical output])
+AC_ARG_ENABLE(sdlgfx,AC_HELP_STRING([--enable-sdlgfx],
+                                    [Enable SDL graphical output]),[
+    AS_IF([test "x$enable_sdlgfx" = xno],
+          [AC_MSG_RESULT([SDL graphical output not enabled])],
+          [enable_sdlgfx=yes])],[
+    AS_IF([test "x$enable_cursout" = xno],
+          [enable_sdlgfx=yes],
+          [AC_MSG_RESULT([Disabling SDL graphical output by default because Curses output enabled.])
+           enable_sdlgfx=no])])
+AS_IF([test "x$enable_sdlgfx" = xyes],[AC_DEFINE(C_SDLGFX,1)])
 
 AH_TEMPLATE(C_CORE_INLINE,[Define to 1 to use inlined memory functions in cpu core])
 AC_ARG_ENABLE(core-inline,AC_HELP_STRING([--enable-core-inline],[Enable inlined memory handling in CPU Core]),[
