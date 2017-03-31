@@ -2883,7 +2883,7 @@ int main(int argc, char* argv[]) {
         setbuf(stderr, NULL);
 #endif
 
-#ifdef EMSCRIPTEN
+#if defined(EMSCRIPTEN) && defined(C_SDLGFX)
 	if (emscripten_set_pointerlockchange_callback(NULL, NULL, true,
 	                                              em_pointerlock_callback)
 	    == EMSCRIPTEN_RESULT_SUCCESS) {

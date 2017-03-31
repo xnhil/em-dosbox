@@ -22,7 +22,14 @@
 #define _XOPEN_SOURCE_EXTENDED
 #include <stdlib.h>
 #include <locale.h>
+#ifdef EMSCRIPTEN
+#define PDC_WIDE
+#define PDC_RGB
+#define NCURSES_COLOR_T short
+#include <curses.h>
+#else
 #include <ncursesw/curses.h>
+#endif
 #include "dosbox.h"
 #include "keyboard.h"
 
@@ -149,42 +156,15 @@ static const struct {
 
 static int txt_line;
 static int txt_cursrow, txt_curscol;
-
-/* From http://www.cprogramming.com/tutorial/utf8.c */
-static int u8_wc_toutf8(unsigned char *dest, Bit32u ch)
-{
-	if (ch < 0x80) {
-		dest[0] = (char)ch;
-		return 1;
-	}
-	if (ch < 0x800) {
-		dest[0] = (ch>>6) | 0xC0;
-		dest[1] = (ch & 0x3F) | 0x80;
-		return 2;
-	}
-	 if (ch < 0x10000) {
-		dest[0] = (ch>>12) | 0xE0;
-		dest[1] = ((ch>>6) & 0x3F) | 0x80;
-		dest[2] = (ch & 0x3F) | 0x80;
-		return 3;
-	}
-	 if (ch < 0x110000) {
-		dest[0] = (ch>>18) | 0xF0;
-		dest[1] = ((ch>>12) & 0x3F) | 0x80;
-		dest[2] = ((ch>>6) & 0x3F) | 0x80;
-		dest[3] = (ch & 0x3F) | 0x80;
-		return 4;
-	}
-	return 0;
-}
+static bool txt_inited = false;
 
 static void TXTOUT_ShutDown(void) {
+	txt_inited = false;
 	endwin();
 }
 
 void TXTOUT_SetSize(Bitu width, Bitu height) {
-	static bool curinited = false;
-	if (!curinited) {
+	if (!txt_inited) {
 		static const NCURSES_COLOR_T vgacolors[8] = {
 			COLOR_BLACK, COLOR_BLUE, COLOR_GREEN, COLOR_CYAN,
 			COLOR_RED, COLOR_MAGENTA, COLOR_YELLOW, COLOR_WHITE
@@ -208,10 +188,14 @@ void TXTOUT_SetSize(Bitu width, Bitu height) {
 		txt_line = 0;
 		txt_cursrow = 0;
 
-		curinited = true;
+		txt_inited = true;
 	}
 
+#ifdef __PDCURSES__
+	resize_term(height, width);
+#else
 	resizeterm(height, width);
+#endif
 }
 
 void TXTOUT_Draw_Line(const Bit8u* vidmem, Bitu len) {
@@ -221,15 +205,24 @@ void TXTOUT_Draw_Line(const Bit8u* vidmem, Bitu len) {
 	for (Bitu cx=0;cx<len;cx++) {
 		Bitu chr=vidmem[cx*2];
 		Bitu col=vidmem[cx*2+1];
-		attron(COLOR_PAIR((col & 7) + ((col & 0x70) >> 1) + 1));
+		int attrset = COLOR_PAIR((col & 7) + ((col & 0x70) >> 1) + 1);
 		if (col & 8)
-			attron(A_BOLD);
+			attrset |= A_BOLD;
+#ifdef __PDCURSES__
 		else
 			attroff(A_BOLD);
+#endif
 		unsigned char buf[4];
-		int l = u8_wc_toutf8(buf, vga2unicode(chr));
-		for (int i = 0; i < l; i++)
-			addch(buf[i]);
+		cchar_t ch;
+#ifdef __PDCURSES__
+		attron(attrset);
+		ch = vga2unicode(chr);
+#else // ncursesw
+		ch.attr = attrset;
+		ch.chars[0] = vga2unicode(chr);
+		ch.chars[1] = 0;
+#endif
+		add_wch(&ch);
 	}
 }
 
@@ -281,6 +274,8 @@ static void TXTOUT_Events(void) {
 }
 
 void TXTOUT_EndUpdate(void) {
+	// DOSBox will call this before TXTOUT_SetSize() initialization
+	if (!txt_inited) return;
 	if (txt_cursrow > 0) {
 		curs_set(1);
 		move(txt_cursrow - 1, txt_curscol);
