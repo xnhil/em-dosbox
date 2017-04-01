@@ -24,7 +24,6 @@
 #include <locale.h>
 #ifdef EMSCRIPTEN
 #define PDC_WIDE
-#define PDC_RGB
 #define NCURSES_COLOR_T short
 #include <curses.h>
 #else
