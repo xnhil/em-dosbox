@@ -292,19 +292,26 @@ AC_ARG_ENABLE(debug,AC_HELP_STRING([--enable-debug],[Enable debug mode]),[
 ],)
 
 AH_TEMPLATE(C_CURSOUT,[Define to 1 to enable Curses text mode output, requires libncursesw])
-AC_ARG_ENABLE(cursout,AC_HELP_STRING([--enable-cursout],[Enable Curses text mode output]),[
-   AC_CHECK_HEADER(ncursesw/curses.h,have_ncursesw_h=yes,)
-   AC_CHECK_LIB(ncursesw, initscr, have_ncursesw_lib=yes, , )
-
-   AS_IF([test "x$enable_cursout" = xno],
-         [AC_MSG_RESULT([Curses text mode output not enabled])],
-         [test "x$enable_debug" != xno -a "x$enable_debug" != x ],
-         [AC_MSG_ERROR([Debug uses Curses and cannot be used with Curses text mode output])],
-         [test "x$have_ncursesw_lib" = xyes -a "x$have_ncursesw_h" = xyes],
-         [LIBS="$LIBS -lncursesw"
-          AC_DEFINE(C_CURSOUT,1)],
-         [AC_MSG_ERROR([Can't find ncursesw, which is required for curses text output])])
-],[enable_cursout=no])
+AC_ARG_WITH(curses,
+   [AC_HELP_STRING([--with-curses],[Use Curses for text mode output. For Emscripten, provide path to emcurses. Otherwise, ncursesw will be used automatically.])],
+   [AS_IF([test "x$with_curses" = xno],
+       [AC_MSG_RESULT([Curses text mode output not enabled])],
+       [test "x$enable_debug" != xno -a "x$enable_debug" != x ],
+       [AC_MSG_ERROR([Debug uses Curses and cannot be used with Curses text mode output])],
+       [test "x$with_curses" = xyes],
+       [AS_IF([test "x$enable_emscripten" = "xyes"],
+           [AC_MSG_ERROR([For Emscripten, use --with-curses=/path/to/emcurses])],
+           [AC_CHECK_HEADER([ncursesw/curses.h],[have_ncursesw_h=yes])
+            AC_CHECK_LIB(ncursesw, initscr, [have_ncursesw_lib=yes])
+            AS_IF([test "x$have_ncursesw_lib" = xyes -a "x$have_ncursesw_h" = xyes],
+               [LIBS="$LIBS -lncursesw"
+                AC_DEFINE(C_CURSOUT,1)],
+               [AC_MSG_ERROR([Cannot find ncursesw for text mode output])])])],
+       dnl This is for Emscripten. Argument is path to emcurses.
+       [CXXFLAGS="$CXXFLAGS -Wno-warn-absolute-paths -I$with_curses"
+        LIBS="$LIBS -L$with_curses/emscripten -lpdcurses --pre-js $with_curses/emscripten/termlib.js"
+        AC_DEFINE(C_CURSOUT,1)])],
+   [with_curses=no])
 
 AH_TEMPLATE(C_SDLGFX,[Define to 1 to enable SDL graphical output])
 AC_ARG_ENABLE(sdlgfx,AC_HELP_STRING([--enable-sdlgfx],
@@ -312,7 +319,7 @@ AC_ARG_ENABLE(sdlgfx,AC_HELP_STRING([--enable-sdlgfx],
     AS_IF([test "x$enable_sdlgfx" = xno],
           [AC_MSG_RESULT([SDL graphical output not enabled])],
           [enable_sdlgfx=yes])],[
-    AS_IF([test "x$enable_cursout" = xno],
+    AS_IF([test "x$with_curses" = xno],
           [enable_sdlgfx=yes],
           [AC_MSG_RESULT([Disabling SDL graphical output by default because Curses output enabled.])
            enable_sdlgfx=no])])
