@@ -2884,6 +2884,19 @@ int main(int argc, char* argv[]) {
 #endif
 
 #if defined(EMSCRIPTEN) && defined(C_SDLGFX)
+	EM_ASM(
+		// Don't copy canvas image back into RAM in SDL_LockSurface()
+		Module['screenIsReadOnly'] = true;
+		// set nearest neighbor scaling, for sharply upscaled pixels
+		var canvasStyle = Module['canvas'].style;
+		canvasStyle.imageRendering = "optimizeSpeed";
+		canvasStyle.imageRendering = "-moz-crisp-edges";
+		canvasStyle.imageRendering = "-o-crisp-edges";
+		canvasStyle.imageRendering = "-webkit-optimize-contrast";
+		canvasStyle.imageRendering = "optimize-contrast";
+		canvasStyle.imageRendering = "crisp-edges";
+		canvasStyle.imageRendering = "pixelated";
+	);
 	if (emscripten_set_pointerlockchange_callback(NULL, NULL, true,
 	                                              em_pointerlock_callback)
 	    == EMSCRIPTEN_RESULT_SUCCESS) {
@@ -2904,7 +2917,10 @@ int main(int argc, char* argv[]) {
 	 */
 	putenv(const_cast<char*>("SDL_DISABLE_LOCK_KEYS=1"));
 #endif
-	if ( SDL_Init( SDL_INIT_VIDEO
+	if ( SDL_Init(SDL_INIT_NOPARACHUTE
+#ifdef C_SDLGFX
+		|SDL_INIT_VIDEO
+#endif
 	/* SDL2 for Emscripten doesn't support this because it lacks threads.
 	 * DOSBox uses SDL_Sleep() and SDL_GetTicks(), which seem to work anyways.
 	 */
@@ -2914,7 +2930,6 @@ int main(int argc, char* argv[]) {
 #if !defined(EMSCRIPTEN) && !SDL_VERSION_ATLEAST(2,0,0)
 		|SDL_INIT_CDROM
 #endif
-		|SDL_INIT_NOPARACHUTE
 		) < 0 ) E_Exit("Can't init SDL %s",SDL_GetError());
 	sdl.inited = true;
 #if SDL_VERSION_ATLEAST(2,0,0)

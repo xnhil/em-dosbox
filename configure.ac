@@ -309,7 +309,7 @@ AC_ARG_WITH(curses,
                [AC_MSG_ERROR([Cannot find ncursesw for text mode output])])])],
        dnl This is for Emscripten. Argument is path to emcurses.
        [CXXFLAGS="$CXXFLAGS -Wno-warn-absolute-paths -I$with_curses"
-        LIBS="$LIBS -L$with_curses/emscripten -lpdcurses --pre-js $with_curses/emscripten/termlib.js"
+        LIBS="$LIBS -L$with_curses/emscripten -lpdcurses --pre-js $with_curses/emscripten/termlib.js --shell-file $with_curses/emscripten/template.html"
         AC_DEFINE(C_CURSOUT,1)])],
    [with_curses=no])
 
