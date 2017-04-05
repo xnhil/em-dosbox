@@ -23,6 +23,11 @@
 #include <ctype.h>
 #include <string>
 #include <vector>
+#if defined(EMSCRIPTEN) && defined(EMTERPRETER_SYNC)
+#include <emscripten.h>
+#include <emscripten/fetch.h>
+#include "dos_inc.h"
+#endif
 #include "programs.h"
 #include "support.h"
 #include "drives.h"
@@ -1530,6 +1535,108 @@ static void KEYB_ProgramStart(Program * * make) {
 	*make=new KEYB;
 }
 
+#if defined(EMSCRIPTEN) && defined(EMTERPRETER_SYNC)
+class WGET : public Program {
+public:
+	void Run(void);
+};
+
+/* Emscripten won't allow a sync fetch:
+ * https://kripken.github.io/emscripten-site/docs/api_reference/fetch.html#synchronous-fetches
+ * The program instead waits for these to be called, looping and calling
+ * emscripten_sleep_with_yield().
+ */
+bool fetchsuccess = false, fetchdone = false;
+static void downloadSucceeded(emscripten_fetch_t *fetch) {
+	fetchsuccess = true;
+	fetchdone = true;
+}
+static void downloadFailed(emscripten_fetch_t *fetch) {
+	fetchsuccess = false;
+	fetchdone = true;
+}
+
+void WGET::Run(void) {
+	if(control->SecureMode()) {
+		WriteOut(MSG_Get("PROGRAM_CONFIG_SECURE_DISALLOW"));
+		return;
+	}
+
+	ChangeToLongCmd();
+
+	bool haveoutname = false;
+	std::string outname, url;
+
+	if (cmd->FindString("-o",outname,true)) {
+		haveoutname = true;
+	}
+
+	if (cmd->GetCount() != 1 || !cmd->FindCommand(1, url)) {
+		WriteOut(MSG_Get("PROGRAM_WGET_SHOWHELP"));
+	} else {
+		if (!haveoutname) {
+			std::string::size_type pos = url.rfind('/');
+			if (pos != std::string::npos) {
+				outname = url.substr(pos+1);
+			} else {
+				outname = url;
+			}
+			if (outname.length() == 0) {
+				outname = "index.htm";
+			}
+		}
+
+		emscripten_fetch_attr_t attr;
+		emscripten_fetch_attr_init(&attr);
+		strcpy(attr.requestMethod, "GET");
+		attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
+		attr.onsuccess = downloadSucceeded;
+		attr.onerror = downloadFailed;
+		fetchdone = false;
+		emscripten_fetch_t *fetch = emscripten_fetch(&attr, url.c_str());
+		while (!fetchdone) emscripten_sleep_with_yield(10);
+		if (fetchsuccess) {
+			Bit16u fhandle;
+			if (!DOS_CreateFile(outname.c_str(),OPEN_WRITE,&fhandle)) {
+				WriteOut(MSG_Get("PROGRAM_WGET_CREATE_ERR"),outname.c_str());
+			} else {
+				bool success = true;
+				/* Write file in 0xFFFF byte chunks via DOS functions. More
+				 * complicated, but this way there's no need to rescan the
+				 * DOS file system, and it behaves like a real DOS command,
+				 * only writing files that DOS can write.
+				 */
+				uint64_t remain = fetch->numBytes;
+				Bit8u *src = (Bit8u *)fetch->data;
+				while (remain > 0) {
+					Bit16u wrote, chunk = (remain < 0x10000) ? remain : 0xFFFF;
+					wrote = chunk;
+					if (!DOS_WriteFile(fhandle,src,&wrote) || wrote != chunk) {
+						WriteOut(MSG_Get("PROGRAM_WGET_WRITE_ERR"),
+						         outname.c_str());
+						success = false;
+						break;
+					}
+					src += chunk;
+					remain -= chunk;
+				}
+				if (success) {
+					WriteOut(MSG_Get("PROGRAM_WGET_DOWNLOADED"),
+					         fetch->numBytes,fetch->url,outname.c_str());
+				}
+				DOS_CloseFile(fhandle);
+			}
+		} else {
+			WriteOut(MSG_Get("PROGRAM_WGET_HTTP_ERR"),url.c_str(),fetch->status);
+		}
+		emscripten_fetch_close(fetch);
+	}
+}
+
+static void WGET_ProgramStart(Program * * make) {
+	*make=new WGET;
+}
+#endif // defined(EMSCRIPTEN) && defined(EMTERPRETER_SYNC)
 
 void DOS_SetupPrograms(void) {
 	/*Add Messages */
@@ -1752,6 +1859,19 @@ void DOS_SetupPrograms(void) {
 	MSG_Add("PROGRAM_KEYB_INVALIDFILE","Keyboard file %s invalid\n");
 	MSG_Add("PROGRAM_KEYB_LAYOUTNOTFOUND","No layout in %s for codepage %i\n");
 	MSG_Add("PROGRAM_KEYB_INVCPFILE","None or invalid codepage file for layout %s\n\n");
+#if defined(EMSCRIPTEN) && defined(EMTERPRETER_SYNC)
+	MSG_Add("PROGRAM_WGET_SHOWHELP",
+		"\033[32;1mWGET\033[0m [-o FILENAME] URL\n\n"
+		"Downloads file from URL and saves it to the file system.\n"
+		"If file name is not specified, last part of URL is used.\n"
+		"Relative paths can be used (with no need for http://).\n"
+		"Browser same-origin policy limits what you can access.\n"
+		);
+	MSG_Add("PROGRAM_WGET_DOWNLOADED","Got %llu bytes from %s and saved to %s.\n");
+	MSG_Add("PROGRAM_WGET_HTTP_ERR","Downloading %s failed, HTTP status code: %d.\n");
+	MSG_Add("PROGRAM_WGET_CREATE_ERR","Error creating %s file.\n");
+	MSG_Add("PROGRAM_WGET_WRITE_ERR","Error while writing to file.\n");
+#endif
 
 	/*regular setup*/
 	PROGRAMS_MakeFile("MOUNT.COM",MOUNT_ProgramStart);
@@ -1763,4 +1883,7 @@ void DOS_SetupPrograms(void) {
 	PROGRAMS_MakeFile("LOADROM.COM", LOADROM_ProgramStart);
 	PROGRAMS_MakeFile("IMGMOUNT.COM", IMGMOUNT_ProgramStart);
 	PROGRAMS_MakeFile("KEYB.COM", KEYB_ProgramStart);
+#if defined(EMSCRIPTEN) && defined(EMTERPRETER_SYNC)
+	PROGRAMS_MakeFile("WGET.COM", WGET_ProgramStart);
+#endif
 }
