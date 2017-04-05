@@ -1539,6 +1539,10 @@ static void KEYB_ProgramStart(Program * * make) {
 class WGET : public Program {
 public:
 	void Run(void);
+private:
+	static bool fetchsuccess, fetchdone;
+	static void downloadSucceeded(emscripten_fetch_t *fetch);
+	static void downloadFailed(emscripten_fetch_t *fetch);
 };
 
 /* Emscripten won't allow a sync fetch:
@@ -1546,12 +1550,12 @@ public:
  * The program instead waits for these to be called, looping and calling
  * emscripten_sleep_with_yield().
  */
-bool fetchsuccess = false, fetchdone = false;
-static void downloadSucceeded(emscripten_fetch_t *fetch) {
+bool WGET::fetchsuccess = false, WGET::fetchdone = false;
+void WGET::downloadSucceeded(emscripten_fetch_t *fetch) {
 	fetchsuccess = true;
 	fetchdone = true;
 }
-static void downloadFailed(emscripten_fetch_t *fetch) {
+void WGET::downloadFailed(emscripten_fetch_t *fetch) {
 	fetchsuccess = false;
 	fetchdone = true;
 }
