@@ -193,6 +193,8 @@ void TXTOUT_SetSize(Bitu width, Bitu height) {
 #ifdef __PDCURSES__
 	resize_term(height, width);
 #else
+	printf("\e[8;%u;%ut", height, width);
+	fflush(NULL);
 	resizeterm(height, width);
 #endif
 }
