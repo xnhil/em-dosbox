@@ -298,7 +298,11 @@ static void RENDER_NullDrawLine(const void * src) {}
 ScalerLineHandler_t RENDER_DrawLine = RENDER_NullDrawLine;
 void RENDER_SetSize(Bitu width,Bitu height,Bitu bpp,float fps,double ratio,bool dblw,bool dblh) {}
 bool RENDER_StartUpdate(void) { return true; }
-void RENDER_EndUpdate(bool abort) { TXTOUT_EndUpdate(); }
+void RENDER_EndUpdate(bool abort) {
+#ifdef C_CURSOUT
+	TXTOUT_EndUpdate();
+#endif // C_CURSOUT
+}
 void RENDER_SetPal(Bit8u entry,Bit8u red,Bit8u green,Bit8u blue) {}
 void GFX_ShowMsg(char const* format,...) {}
 void GFX_Events(void) {}
