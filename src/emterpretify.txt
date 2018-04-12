@@ -44,5 +44,9 @@
 "__Z15MAPPER_RunEventj",
 "__Z18MAPPER_RunInternalv",
 "__ZL10Pause_Loopv",
-"__ZN4WGET3RunEv"
+"__ZN4WGET3RunEv",
+"__Z15ConnectToServerPKc",
+"__ZN6IPXNET3RunEv",
+"__Z14IPX_ESRHandlerv",
+"__Z14Config_Add_SDLv"
 ]

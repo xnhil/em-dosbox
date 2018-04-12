@@ -41,6 +41,10 @@
 #include "programs.h"
 #include "pic.h"
 
+#if defined(EMSCRIPTEN) && defined(EMTERPRETER_SYNC)
+#include <emscripten.h>
+#endif
+
 #define SOCKTABLESIZE	150 // DOS IPX driver was limited to 150 open sockets
 
 struct ipxnetaddr {
@@ -569,6 +573,9 @@ static void receivePacket(Bit8u *buffer, Bit16s bufSize) {
 	Bit16u useSocket = swapByte(bufword[8]);
 	IPXHeader * tmpHeader;
 	tmpHeader = (IPXHeader *)buffer;
+#if defined(EMSCRIPTEN)
+	useSocket = SDLNet_Read16(tmpHeader->dest.socket);
+#endif
 
 	// Check to see if ping packet
 	if(useSocket == 0x2) {
@@ -807,6 +814,9 @@ bool ConnectToServer(char const *strAddr) {
 						return false;
 					}
 					CALLBACK_Idle();
+#if defined(EMSCRIPTEN) && defined(EMTERPRETER_SYNC)
+					emscripten_sleep(1);
+#endif
 					result = SDLNet_UDP_Recv(ipxClientSocket, &regPacket);
 					if (result != 0) {
 						memcpy(localIpxAddr.netnode, regHeader.dest.addr.byNode.node, sizeof(localIpxAddr.netnode));
@@ -1044,6 +1054,9 @@ public:
 				ticks = GetTicks();
 				while((GetTicks() - ticks) < 1500) {
 					CALLBACK_Idle();
+#if defined(EMSCRIPTEN) && defined(EMTERPRETER_SYNC)
+					emscripten_sleep(1);
+#endif
 					if(pingCheck(&pingHead)) {
 						WriteOut("Response from %d.%d.%d.%d, port %d time=%dms\n", CONVIP(pingHead.src.addr.byIP.host), SDLNet_Read16(&pingHead.src.addr.byIP.port), GetTicks() - ticks);
 					}

@@ -5,6 +5,7 @@ AC_CONFIG_SRCDIR(README)
 
 dnl Check for Emscripten is done early because it needs to change host triplet.
 AS_CASE([$CC],
+        [*emcc.py], [enable_emscripten="yes"],
         [*emcc], [enable_emscripten="yes"],
         [enable_emscripten="no"])
 
@@ -467,18 +468,24 @@ AC_CHECK_HEADER(SDL_net.h,have_sdl_net_h=yes,)
 
 if test x$with_sdl2 = "xyes" ; then
   LIBSDL_HEADER="SDL2"
+  LIBSDL_CPPFLAGS="-s USE_SDL=2 -s USE_SDL_NET=2"
+  LIBSDL_LDFLAGS="-s USE_SDL_NET=2"
 else
   LIBSDL_HEADER="SDL"
+  LIBSDL_CPPFLAGS=""
+  LIBSDL_LDFLAGS=""
 fi
 
 if test x$host = xi386-pc-os2-emx ; then
   AC_MSG_CHECKING(for SDLNet_Init in ${LIBSDL_HEADER}_net);
-  LIBS_BACKUP=$LIBS;
-  LIBS="$LIBS -l${LIBSDL_HEADER}_Net";
+  LIBS_BACKUP=$LIBS
+  CPP_FLAGS_BACKUP=$CPP_FLAGS
+  LIBS="$LIBS -l${LIBSDL_HEADER}_Net $LIBSDL_LDFLAGS"
   AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <SDL_Net.h>]],[[
 	SDLNet_Init ();
   ]])], [AC_MSG_RESULT(yes); have_sdl_net_lib=yes], AC_MSG_RESULT(no))
   LIBS=$LIBS_BACKUP
+  CPP_FLAGS=$CPP_FLAGS_BACKUP
 else
 AC_CHECK_LIB(${LIBSDL_HEADER}_net, SDLNet_Init, have_sdl_net_lib=yes, , )
 fi
@@ -642,7 +649,7 @@ AS_IF([test "x$enable_emscripten" = "xyes"],[
   AS_IF([test "x$enable_sync" != "xno"], [AC_DEFINE([EMTERPRETER_SYNC],[1])])
   AS_IF([test "x$with_sdl2" != "xno"],[
     AS_IF([test "x$with_sdl2" = "xyes"],
-      [CXXFLAGS="$CXXFLAGS -s USE_SDL=2"],
+      [CXXFLAGS="$CXXFLAGS -s USE_SDL=2 -s USE_SDL_NET=2 -s FORCE_FILESYSTEM=1"],
       [LIBS="$LIBS -L$with_sdl2/build/.libs/ -lSDL2"
        CXXFLAGS="$CXXFLAGS -Wno-warn-absolute-paths -I$with_sdl2/include"
     ])
