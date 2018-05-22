@@ -21,7 +21,7 @@ if EMSCRIPTEN_BUILD
 dosbox_LDFLAGS=-s TOTAL_MEMORY=134217728 -s ALLOW_MEMORY_GROWTH=0
 CLEANFILES=dosbox.js dosbox.html.mem dosbox.js.orig.js dosbox.js.tmp.js
 if EMTERPRETER
-dosbox_LDFLAGS+=-s EMTERPRETIFY=1 -s EMTERPRETIFY_ASYNC=1 -s EMTERPRETIFY_WHITELIST=@emterpretify.txt -s FETCH=1
+dosbox_LDFLAGS+=-s EMTERPRETIFY=1 -s EMTERPRETIFY_ASYNC=1 -s EMTERPRETIFY_WHITELIST=@emterpretify.txt
 EXTRA_dosbox_DEPENDENCIES=emterpretify.txt
 else
 # Memory init file is huge and it doesn't save bandwith even if using gzip.

@@ -468,24 +468,18 @@ AC_CHECK_HEADER(SDL_net.h,have_sdl_net_h=yes,)
 
 if test x$with_sdl2 = "xyes" ; then
   LIBSDL_HEADER="SDL2"
-  LIBSDL_CPPFLAGS="-s USE_SDL=2 -s USE_SDL_NET=2"
-  LIBSDL_LDFLAGS="-s USE_SDL_NET=2"
 else
   LIBSDL_HEADER="SDL"
-  LIBSDL_CPPFLAGS=""
-  LIBSDL_LDFLAGS=""
 fi
 
 if test x$host = xi386-pc-os2-emx ; then
   AC_MSG_CHECKING(for SDLNet_Init in ${LIBSDL_HEADER}_net);
-  LIBS_BACKUP=$LIBS
-  CPP_FLAGS_BACKUP=$CPP_FLAGS
-  LIBS="$LIBS -l${LIBSDL_HEADER}_Net $LIBSDL_LDFLAGS"
+  LIBS_BACKUP=$LIBS;
+  LIBS="$LIBS -l${LIBSDL_HEADER}_Net";
   AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <SDL_Net.h>]],[[
 	SDLNet_Init ();
   ]])], [AC_MSG_RESULT(yes); have_sdl_net_lib=yes], AC_MSG_RESULT(no))
   LIBS=$LIBS_BACKUP
-  CPP_FLAGS=$CPP_FLAGS_BACKUP
 else
 AC_CHECK_LIB(${LIBSDL_HEADER}_net, SDLNet_Init, have_sdl_net_lib=yes, , )
 fi
@@ -495,6 +489,24 @@ if test x$have_sdl_net_lib = xyes -a x$have_sdl_net_h = xyes ; then
    AC_DEFINE(C_IPX,1)
 else 
    AC_MSG_WARN([Can't find ${LIBSDL_HEADER}_net, internal modem and ipx disabled])
+fi
+
+dnl Emscripten supports SDL_net via ports
+if test "x$enable_emscripten" = "xyes" ; then
+  AC_ARG_WITH(sdl2-net, [AC_HELP_STRING([--with-sdl2-net=no/yes],
+                  [SDL_net is disabled by default for Emscripten, use
+                   this to enable it along with DOSBOX IPX/Modem
+                   functionality.])],
+                  [], [with_sdl2_net=no])
+  AC_MSG_CHECKING(for emscripten/sdl2_net)
+  if test "x$with_sdl2_net" = "xyes" ; then
+    CXXFLAGS="$CXXFLAGS -s USE_SDL_NET=2"
+    AC_DEFINE(C_MODEM,1)
+    AC_DEFINE(C_IPX,1)
+    AC_MSG_RESULT(yes)
+  else
+    AC_MSG_RESULT(no)
+  fi
 fi
 
 AH_TEMPLATE(C_X11_XKB,[define to 1 if you have XKBlib.h and X11 lib])
@@ -649,13 +661,38 @@ AS_IF([test "x$enable_emscripten" = "xyes"],[
   AS_IF([test "x$enable_sync" != "xno"], [AC_DEFINE([EMTERPRETER_SYNC],[1])])
   AS_IF([test "x$with_sdl2" != "xno"],[
     AS_IF([test "x$with_sdl2" = "xyes"],
-      [CXXFLAGS="$CXXFLAGS -s USE_SDL=2 -s USE_SDL_NET=2 -s FORCE_FILESYSTEM=1"],
+      [CXXFLAGS="$CXXFLAGS -s USE_SDL=2"],
       [LIBS="$LIBS -L$with_sdl2/build/.libs/ -lSDL2"
        CXXFLAGS="$CXXFLAGS -Wno-warn-absolute-paths -I$with_sdl2/include"
     ])
   ])
 ])
 
+AC_ARG_ENABLE(
+  [filesystem],
+  [AC_HELP_STRING([--enable-filesystem],
+    [Force filesystem inclusion in Emscripten to allow packaging of content])],
+  [], [enable_filesystem=no])
+AM_CONDITIONAL([FILESYSTEM], [test "x$enable_filestem" == "xyes"])
+AS_IF([test "x$enable_emscripten" = "xyes"],
+  AS_IF([test "x$enable_filesystem" = "xyes"],
+    [CXXFLAGS="$CXXFLAGS -s FORCE_FILESYSTEM=1"]
+  )
+)
+
+AH_TEMPLATE(EMSCRIPTEN_WGET,[Define to 1 to enable WGET in Emscripten build, requires Fetch API])
+AC_ARG_ENABLE(
+  [wget],
+  [AC_HELP_STRING([--enable-wget],
+    [Enable WGET DOS command, requires Fetch API, requires WASM to be disabled])],
+  [], [enable_wget=no])
+AM_CONDITIONAL([WGET], [test "x$enable_wget" == "xyes"])
+AS_IF([test "x$enable_emscripten" = "xyes"],
+  AS_IF([test "x$enable_wget" = "xyes"],
+    AC_DEFINE(EMSCRIPTEN_WGET,1)
+    [CXXFLAGS="$CXXFLAGS -s FETCH=1 -s WASM=0"]
+  )
+)
 
 AC_CONFIG_FILES([ 
 Makefile
